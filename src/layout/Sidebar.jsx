@@ -40,7 +40,14 @@ const Sidebar = () => {
       )}
       
       {/* Main sidebar - will be hidden when sidebarVisible is false */}
-      <div className={`border-r border-e-slate-950 w-64 min-h-screen bg-gray-900 text-gray-300 flex flex-col transition-all duration-300 ${sidebarVisible ? 'translate-x-0' : '-translate-x-full'} fixed top-0 left-0 z-10`}>
+      <div className={`max-h-100 overflow-y-auto
+  [&::-webkit-scrollbar]:w-2
+  [&::-webkit-scrollbar-track]:rounded-full
+  [&::-webkit-scrollbar-track]:bg-gray-100
+  [&::-webkit-scrollbar-thumb]:rounded-full
+  [&::-webkit-scrollbar-thumb]:bg-gray-300
+  dark:[&::-webkit-scrollbar-track]:bg-neutral-700
+  dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 border-r border-e-slate-950 w-64 min-h-screen bg-gray-900 text-gray-300 flex flex-col transition-all duration-300 ${sidebarVisible ? 'translate-x-0' : '-translate-x-full'} fixed top-0 left-0 z-10`}>
         {/* Logo and Brand */}
         <div className="py-4 px-6 flex items-center">
           <h1 className="text-xl font-semibold text-white">ADMINIS</h1>
