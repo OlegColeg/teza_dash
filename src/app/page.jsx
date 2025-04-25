@@ -6,14 +6,14 @@ import { Container } from "lucide-react";
 export default function Home() {
     return (
         <>
-        <div className="flex border-b border-dark-700">
-       <Sidebar />
- <div className="flex-1 flex flex-col ">
+        <div className="flex w-full border-b-amber-700 ">
+        <div><Sidebar/></div>
+        <div className="flex-1  border-b-amber-700 ">
+            
         <Navbar />
+        <p>dnskncx</p>
         </div>
         </div>
-      
-
     </>
     );
     }

@@ -7,9 +7,10 @@ import { mdiMoonWaningCrescent } from '@mdi/js';
 
 export default function Navbar() {
   return (
-    <header className="bg-dark-900 ">
-      <div className="px-4 py-3 flex items-center justify-between">
-       
+
+    <header className="flex-1 bg-dark-900 ">
+      <div className="px-4 py-3 flex w-full justify-between items-center ">
+      {/* partea cea cu cautare  */}
         <div className="flex items-center">
           <div className="relative">
             <input
@@ -32,6 +33,9 @@ export default function Navbar() {
             </svg>
           </div>
         </div>
+
+
+        {/* partea cu iconite butoane  */}
         
         <div className="flex items-center space-x-4">
           <button className="text-gray-400 hover:text-white">
@@ -81,6 +85,13 @@ export default function Navbar() {
             </svg>
           </button>
         </div>
+
+
+
+
+
+
+
       </div>
     </header>
   );
