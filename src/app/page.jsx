@@ -1,6 +1,6 @@
 import React from "react";
 import Navbar from "@/layout/Navbar";
-import Sidebar from "@/components/SideBar";
+import Sidebar from "@/layout/Sidebar";
 import { Container } from "lucide-react";
 
 export default function Home() {
@@ -9,7 +9,7 @@ export default function Home() {
         <div className="flex justify-between">
 
    
-        <Sidebar/><div>
+        <Sidebar/><div className="flex-1">
         <Navbar />
         </div>
         </div>

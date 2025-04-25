@@ -32,9 +32,9 @@ const Sidebar = () => {
       {/* User Profile */}
       <div className="px-6 py-6 flex flex-col items-center border-b border-gray-800">
         <div className="h-20 w-20 rounded-full overflow-hidden mb-4">
-          <img src="/api/placeholder/80/80" alt="User profile" className="h-full w-full object-cover" />
+          <img src="/image/olegAdmin.jpg" alt="User profile" className="h-full w-full object-cover" />
         </div>
-        <h2 className="text-xl font-semibold text-white">Ed Roh</h2>
+        <h2 className="text-xl font-semibold text-white">Oală Oală</h2>
         <p className="text-sm text-gray-400">VP Fancy Admin</p>
       </div>
 
