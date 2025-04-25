@@ -1,14 +1,15 @@
 // src/app/components/Navbar.js
 import React from 'react';
-
+import Sidebar from './Sidebar';
 import Icon from '@mdi/react';
 import { mdiMoonWaningCrescent } from '@mdi/js';
 
 
 export default function Navbar() {
   return (
-    <header className="bg-dark-900 border-b border-dark-700">
+    <header className="bg-dark-900 ">
       <div className="px-4 py-3 flex items-center justify-between">
+       
         <div className="flex items-center">
           <div className="relative">
             <input
