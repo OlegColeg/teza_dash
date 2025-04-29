@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, Home, Users, FileText, FilePlus, Calendar, HelpCircle, BarChart2, PieChart, TrendingUp, Map } from 'lucide-react';
 import Navbar from './Navbar';
+import Content from '@/app/content';
 const Sidebar = () => {
   const [expanded, setExpanded] = useState({
     data: true,
@@ -160,9 +161,9 @@ const Sidebar = () => {
 </div>
 
       </div>
-      <div className={`w-full py-2 px-5 transition-all duration-300 ${sidebarVisible ? 'ml-64' : 'ml-0'}` }>
+      <div className={`w-100% py-2 px-5 transition-all duration-300 ${sidebarVisible ? 'ml-64' : 'ml-0'}` }>
+<Content />
 
-<h1>Salut</h1>
 
 </div>
 
