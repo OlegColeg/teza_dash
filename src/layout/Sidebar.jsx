@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, Home, Users, FileText, FilePlus, Calendar, HelpCircle, BarChart2, PieChart, TrendingUp, Map } from 'lucide-react';
-
+import Navbar from './Navbar';
 const Sidebar = () => {
   const [expanded, setExpanded] = useState({
     data: true,
@@ -28,7 +28,10 @@ const Sidebar = () => {
   return (
     <>
       {/* Hamburger button when sidebar is collapsed */}
+
       {!sidebarVisible && (
+        <>
+         <div className='flex w-full'>
         <button 
           onClick={toggleSidebar} 
           className=" top-3 left-4 z-20 text-white bg-gray-600 p-2 m-3  rounded-md"
@@ -37,6 +40,10 @@ const Sidebar = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
+       
+          <Navbar />
+        </div>
+        </>
       )}
       
       {/* Main sidebar - will be hidden when sidebarVisible is false */}
@@ -146,10 +153,15 @@ const Sidebar = () => {
         </nav>
       </div>
       
-      {/* Content wrapper - add this to push content when sidebar is visible */}
-      <div className={`transition-all duration-300 ${sidebarVisible ? 'ml-64' : 'ml-0'}`}>
-        {/* Your page content goes here */}
+
+      //Content area
+      <div className={` transition-all duration-300 ${sidebarVisible ? 'ml-64' : 'ml-0'}` }>
+      {sidebarVisible && (
+        <Navbar />
+      )}
+      <Navbar />
       </div>
+
     </>
   );
 };
