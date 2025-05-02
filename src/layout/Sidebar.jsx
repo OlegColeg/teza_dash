@@ -161,11 +161,11 @@ const Sidebar = () => {
 </div>
 
       </div>
-      <div className={`w-100% py-2 px-5 transition-all duration-300 ${sidebarVisible ? 'ml-64' : 'ml-0'}` }>
-<Content />
+      {/* <div className={`w-100% py-2 px-5 transition-all duration-300 ${sidebarVisible ? 'ml-64' : 'ml-0'}` }>
+{/* <Content /> */}
 
 
-</div>
+</div> */}
 
 
       {/* Content area */}

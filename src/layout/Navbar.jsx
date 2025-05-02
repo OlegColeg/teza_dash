@@ -11,12 +11,12 @@ export default function Navbar() {
     <header className="flex-1 bg-dark-900 ">
       <div className="px-4 py-3 flex w-full justify-between items-center ">
       {/* partea cea cu cautare  */}
-        <div className="flex items-center">
+        <div className="flex items-center rounded-md">
           <div className="relative">
             <input
               type="text"
               placeholder="Search"
-              className="bg-dark-800 text-gray-300 rounded pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-1 focus:ring-teal-400"
+              className="bg-gray-800 focus:bg-gray-900 text-gray-300 rounded pl-10 pr-4 py-2 w- focus:outline-none focus:ring-1 focus:ring-teal-400"
             />
             <svg
               className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
