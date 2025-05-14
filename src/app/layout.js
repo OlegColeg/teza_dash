@@ -1,25 +1,37 @@
+// src/app/layout.js - Layout-ul principal
+"use client";
 
-import { Geist, Geist_Mono } from "next/font/google";
+import { useState } from "react";
 import "./globals.css";
 import Sidebar from "@/layout/Sidebar";
-import Content from "@/app/content";
-
+import Navbar from "@/layout/Navbar";
 
 export default function RootLayout({ children }) {
+  // Mută starea sidebarVisible în layout-ul principal pentru a o partaja între componente
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+
+  const toggleSidebar = () => {
+    setSidebarVisible(prev => !prev);
+  };
+
   return (
     <html lang="en">
-      <body
-      >
-        
-        <Sidebar />
-        <div className={`w-100% py-2 px-5 transition-all duration-300 }` }>
-<Content />
-<script src="/app.js"></script>
-
-</div>
-
-
-        
+      <body className="bg-dark-900">
+        <div className="flex">
+          {/* Sidebar Component */}
+          <Sidebar sidebarVisible={sidebarVisible} toggleSidebar={toggleSidebar} />
+          
+          {/* Main Content Area */}
+          <div className={`flex flex-col flex-1 transition-all duration-300 ${sidebarVisible ? 'ml-64' : 'ml-0'}`}>
+            {/* Navbar Component */}
+            <Navbar toggleSidebar={toggleSidebar} sidebarVisible={sidebarVisible} />
+            
+            {/* Page Content */}
+            <main className="p-5">
+              {children}
+            </main>
+          </div>
+        </div>
       </body>
     </html>
   );
