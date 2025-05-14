@@ -81,7 +81,7 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
               Data
             </div>
             <div className="px-3">
-              <Link href="/team" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
+              <Link href="/dashboard/team" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <Users size={20} className="mr-3" />
                 <span>Manage Team</span>
               </Link>
