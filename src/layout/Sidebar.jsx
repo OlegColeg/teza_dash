@@ -48,7 +48,7 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
       >
         {/* Logo and Brand */}
         <div className="py-4 px-6 flex items-center">
-          <h1 className="text-xl font-semibold text-white">ADMINIS</h1>
+          <h1 className="text-xl font-semibold text-white">ADMINISTRATOR</h1>
           <button className="ml-auto text-gray-400" onClick={toggleSidebar}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -62,7 +62,7 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
             <img src="/image/olegAdmin.jpg" alt="User profile" className="h-full w-full object-cover" />
           </div>
           <h2 className="text-xl font-semibold text-white">Oală Oală</h2>
-          <p className="text-sm text-gray-400">VP Fancy Admin</p>
+          <p className="text-sm text-gray-400">Main Administrator</p>
         </div>
 
         {/* Navigation */}
