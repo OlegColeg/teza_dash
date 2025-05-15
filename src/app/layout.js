@@ -16,7 +16,7 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en">
-      <body className="bg-dark-900">
+      <body>
         <div className="flex">
           {/* Sidebar Component */}
           <Sidebar sidebarVisible={sidebarVisible} toggleSidebar={toggleSidebar} />
