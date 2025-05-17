@@ -3,8 +3,8 @@
 
 import { useState } from "react";
 import "./globals.css";
-import Sidebar from "@/layout/Sidebar";
-import Navbar from "@/layout/Navbar";
+import Sidebar from "@/app/components/layout/Sidebar";
+import Navbar from "@/app/components/layout/Navbar";
 
 export default function RootLayout({ children }) {
   // Mută starea sidebarVisible în layout-ul principal pentru a o partaja între componente
