@@ -135,7 +135,7 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
                 <TrendingUp size={20} className="mr-3" />
                 <span>Line Chart</span>
               </Link>
-              <Link href="/charts/geography" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
+              <Link href="/charts/geo" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <Map size={20} className="mr-3" />
                 <span>Geography Chart</span>
               </Link>
