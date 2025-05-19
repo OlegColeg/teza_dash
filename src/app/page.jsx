@@ -3,7 +3,7 @@
 
 import React from "react";
 import { BarChart2, Users, FileText, ShoppingCart } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar,LineChart,Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Download, TrendingUp } from "lucide-react";
 const data = [
   { month: "Jan", sales: 4000, revenue: 2400, profit: 1600 },
@@ -104,12 +104,45 @@ export default function Home() {
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">Sales by Category</h2>
-          <div className="h-64 bg-dark-700 rounded flex items-center justify-center">
-            <p className="text-gray-400">Chart will be displayed here</p>
-          </div>
+<div className="bg-dark-800 p-6 rounded-lg shadow">
+        <h2 className="text-xl font-semibold text-white mb-4">Evoluția Anuală</h2>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={data}
+              margin={{
+                top: 20,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="name" 
+                tick={{ fill: '#9CA3AF' }}
+                tickLine={{ stroke: '#9CA3AF' }}
+              />
+              <YAxis 
+                tick={{ fill: '#9CA3AF' }}
+                tickLine={{ stroke: '#9CA3AF' }}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: '#1F2937',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#F9FAFB'
+                }}
+              />
+              <Legend wrapperStyle={{ color: '#F9FAFB' }} />
+              <Line type="monotone" dataKey="visits" stroke="#3B82F6" activeDot={{ r: 8 }} name="Vizite" />
+              <Line type="monotone" dataKey="sales" stroke="#10B981" name="Vânzări" />
+              <Line type="monotone" dataKey="revenue" stroke="#8B5CF6" name="Venituri" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
+      </div>
       </div>
 
       {/* Recent Transactions Table */}
