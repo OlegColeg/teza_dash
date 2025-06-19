@@ -4,27 +4,27 @@ import React, { useState } from "react";
 import { PlusCircle, MinusCircle, HelpCircle } from "lucide-react";
 
 export default function FAQPage() {
-  // FAQ data
+  // FAQ data cu text Lorem Ipsum
   const faqData = [
     {
-      question: "Cum pot exporta datele din grafice?",
-      answer: "Pentru a exporta datele din grafice, apăsați butonul 'EXPORTĂ GRAFIC' din partea dreaptă sus a paginii. Datele vor fi exportate în format CSV sau PNG."
+      question: "Lorem ipsum dolor sit amet?",
+      answer: "Consectetur adipiscing elit. Nulla vitae elit libero, a pharetra augue."
     },
     {
-      question: "Cum pot adăuga utilizatori noi în sistem?",
-      answer: "Pentru a adăuga utilizatori noi, navigați la secțiunea 'Manage Team' din meniul lateral, apoi apăsați butonul 'Adaugă Utilizator'. Completați formularul cu informațiile necesare și apăsați 'Salvează'."
+      question: "Sed posuere consectetur est at lobortis?",
+      answer: "Cras justo odio, dapibus ac facilisis in, egestas eget quam."
     },
     {
-      question: "Cum pot genera rapoarte personalizate?",
-      answer: "Pentru rapoarte personalizate, accesați pagina 'Dashboard', selectați perioada dorită și filtrele relevante, apoi apăsați butonul 'DOWNLOAD REPORTS' pentru a genera și descărca raportul."
+      question: "Integer posuere erat a ante venenatis?",
+      answer: "Duis mollis, est non commodo luctus, nisi erat porttitor ligula."
     },
     {
-      question: "Ce reprezintă graficele de pe Dashboard?",
-      answer: "Graficele de pe Dashboard reprezintă date analitice despre vânzări, venituri și profit. Acestea sunt actualizate în timp real și oferă o privire de ansamblu asupra performanței afacerii."
+      question: "Curabitur blandit tempus porttitor?",
+      answer: "Maecenas faucibus mollis interdum. Etiam porta sem malesuada magna mollis euismod."
     },
     {
-      question: "Cum pot modifica parolele utilizatorilor?",
-      answer: "Pentru a modifica parola unui utilizator, accesați secțiunea 'Manage Team', găsiți utilizatorul respectiv, apăsați pe iconița de editare și selectați opțiunea 'Resetare parolă'."
+      question: "Nulla vitae elit libero a pharetra augue?",
+      answer: "Vestibulum id ligula porta felis euismod semper. Praesent commodo cursus magna."
     }
   ];
 
