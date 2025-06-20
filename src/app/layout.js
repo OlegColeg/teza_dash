@@ -17,7 +17,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
         <head>
-      <title>Dashboard Oală Oală</title>
+      <title>Dashboard Oală Oleg</title>
     </head>
       <body>
         <div className="flex">
