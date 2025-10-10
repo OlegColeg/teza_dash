@@ -1,40 +1,59 @@
-// src/app/layout.js - Layout-ul principal
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import "./globals.css";
 import Sidebar from "@/app/components/layout/Sidebar";
 import Navbar from "@/app/components/layout/Navbar";
+import ProtectedRoute from "@/app/components/ProtectedRoute";
+import { authAPI } from "@/app/utils/auth";
 
 export default function RootLayout({ children }) {
-  // Mută starea sidebarVisible în layout-ul principal pentru a o partaja între componente
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const pathname = usePathname();
+  
+  // Pagini publice care nu necesită autentificare
+  const publicPages = ['/auth'];
+  const isPublicPage = publicPages.includes(pathname);
 
   const toggleSidebar = () => {
     setSidebarVisible(prev => !prev);
   };
 
-  return (
-    <html lang="en">
+  // Dacă suntem pe o pagină publică, afișează doar conținutul
+  if (isPublicPage) {
+    return (
+      <html lang="ro">
         <head>
-      <title>Dashboard Oală Oleg</title>
-    </head>
+          <title>Dashboard Oală Oleg</title>
+        </head>
+        <body>
+          {children}
+        </body>
+      </html>
+    );
+  }
+
+  // Pentru toate celelalte pagini, folosește layout-ul cu sidebar + protecție
+  return (
+    <html lang="ro">
+      <head>
+        <title>Dashboard Oală Oleg</title>
+      </head>
       <body>
-        <div className="flex">
-          {/* Sidebar Component */}
-          <Sidebar sidebarVisible={sidebarVisible} toggleSidebar={toggleSidebar} />
-          
-          {/* Main Content Area */}
-          <div className={`flex flex-col flex-1 transition-all duration-300 ${sidebarVisible ? 'ml-64' : 'ml-0'}`}>
-            {/* Navbar Component */}
-            <Navbar toggleSidebar={toggleSidebar} sidebarVisible={sidebarVisible} />
+        <ProtectedRoute>
+          <div className="flex">
+            <Sidebar sidebarVisible={sidebarVisible} toggleSidebar={toggleSidebar} />
             
-            {/* Page Content */}
-            <main className="p-5">
-              {children}
-            </main>
+            <div className={`flex flex-col flex-1 transition-all duration-300 ${sidebarVisible ? 'ml-64' : 'ml-0'}`}>
+              <Navbar toggleSidebar={toggleSidebar} sidebarVisible={sidebarVisible} />
+              
+              <main className="p-5">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        </ProtectedRoute>
       </body>
     </html>
   );

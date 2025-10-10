@@ -1,27 +1,26 @@
-// src/layout/Sidebar.jsx
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Home, Users, FileText, FilePlus, Calendar, HelpCircle, BarChart2, PieChart, TrendingUp, Map } from 'lucide-react';
+import { Home, Users, FileText, FilePlus, Calendar, HelpCircle, BarChart2, PieChart, TrendingUp, Map, LogOut } from 'lucide-react';
+import { authAPI } from '@/app/utils/auth';
 
 const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
-  const [expanded, setExpanded] = useState({
-    data: true,
-    pages: true,
-    charts: true
-  });
+  const [user, setUser] = useState(null);
 
-  const toggleSection = (section) => {
-    setExpanded(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
+  useEffect(() => {
+    const currentUser = authAPI.getCurrentUser();
+    setUser(currentUser);
+  }, []);
+
+  const handleLogout = () => {
+    if (confirm('Ești sigur că vrei să te deconectezi?')) {
+      authAPI.logout();
+    }
   };
 
   return (
     <>
-      {/* Sidebar hamburger button when collapsed */}
       {!sidebarVisible && (
         <button 
           onClick={toggleSidebar} 
@@ -33,7 +32,6 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
         </button>
       )}
       
-      {/* Main sidebar */}
       <div className={`max-h-screen overflow-y-auto
         [&::-webkit-scrollbar]:w-2
         [&::-webkit-scrollbar-track]:rounded-full
@@ -58,11 +56,16 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
 
         {/* User Profile */}
         <div className="px-6 py-6 flex flex-col items-center border-b border-gray-800">
-          <div className="h-20 w-20 rounded-full overflow-hidden mb-4">
-            <img src="/image/olegAdmin.jpg" alt="User profile" className="h-full w-full object-cover" />
+          <div className="h-20 w-20 rounded-full overflow-hidden mb-4 bg-teal-600 flex items-center justify-center">
+            <span className="text-3xl font-bold text-white">
+              {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+            </span>
           </div>
-          <h2 className="text-xl font-semibold text-white">Oală Oală</h2>
-          <p className="text-sm text-gray-400">Main Administrator</p>
+          <h2 className="text-xl font-semibold text-white">
+            {user?.firstName} {user?.lastName}
+          </h2>
+          <p className="text-sm text-gray-400">{user?.role || 'User'}</p>
+          <p className="text-xs text-gray-500 mt-1">{user?.email}</p>
         </div>
 
         {/* Navigation */}
@@ -142,6 +145,17 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
             </div>
           </div>
         </nav>
+
+        {/* Logout Button */}
+        <div className="px-3 py-4 border-t border-gray-800">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center px-3 py-2 text-red-400 hover:bg-red-900 hover:bg-opacity-20 rounded-md w-full transition-colors"
+          >
+            <LogOut size={20} className="mr-3" />
+            <span>Deconectare</span>
+          </button>
+        </div>
       </div>
     </>
   );
