@@ -1,0 +1,351 @@
+{
+  "info": {
+    "name": "Teza Dashboard API",
+    "description": "Complete API tests for Dashboard project",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"test123\",\n  \"firstName\": \"Ion\",\n  \"lastName\": \"Popescu\",\n  \"phone\": \"+373 60 123 456\",\n  \"city\": \"Chișinău\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"test123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3001/auth/profile",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["auth", "profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "Get All Employees",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3001/employees",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["employees"]
+            }
+          }
+        },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Maria\",\n  \"lastName\": \"Iacob\",\n  \"email\": \"maria@company.com\",\n  \"phone\": \"+373 60 555 555\",\n  \"department\": \"IT\",\n  \"position\": \"Developer\",\n  \"salary\": 3500,\n  \"hireDate\": \"2024-01-15\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/employees",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["employees"]
+            }
+          }
+        },
+        {
+          "name": "Get Employee by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3001/employees/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["employees", "1"]
+            }
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Maria\",\n  \"lastName\": \"Iacob Updated\",\n  \"email\": \"maria@company.com\",\n  \"phone\": \"+373 60 555 556\",\n  \"department\": \"IT\",\n  \"position\": \"Senior Developer\",\n  \"salary\": 4000,\n  \"hireDate\": \"2024-01-15\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/employees/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["employees", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Employee",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3001/employees/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["employees", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contacts",
+      "item": [
+        {
+          "name": "Get All Contacts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3001/contacts",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["contacts"]
+            }
+          }
+        },
+        {
+          "name": "Create Contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Dumitru\",\n  \"email\": \"alex@email.com\",\n  \"phone\": \"+373 60 999 999\",\n  \"company\": \"Tech Corp\",\n  \"message\": \"Vrem să colaboram\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/contacts",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["contacts"]
+            }
+          }
+        },
+        {
+          "name": "Delete Contact",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3001/contacts/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["contacts", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "item": [
+        {
+          "name": "Get All Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3001/invoices",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["invoices"]
+            }
+          }
+        },
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoiceNumber\": \"INV-001\",\n  \"userId\": 1,\n  \"amount\": 1500,\n  \"description\": \"Web development services\",\n  \"status\": \"pending\",\n  \"dueDate\": \"2024-12-31\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/invoices",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["invoices"]
+            }
+          }
+        },
+        {
+          "name": "Update Invoice",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoiceNumber\": \"INV-001\",\n  \"amount\": 1500,\n  \"description\": \"Web development services - Updated\",\n  \"status\": \"paid\",\n  \"dueDate\": \"2024-12-31\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/invoices/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["invoices", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001",
+      "type": "string"
+    }
+  ]
+}

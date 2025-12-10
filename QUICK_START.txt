@@ -1,0 +1,160 @@
+╔═════════════════════════════════════════════════════════════════════════╗
+║                  🚀 TEZA DASHBOARD - QUICK START                       ║
+║                    Gata de pornit și utilizat!                          ║
+╚═════════════════════════════════════════════════════════════════════════╝
+
+⏱️  PORNIRE (Aprox. 30 secunde)
+═══════════════════════════════════════════════════════════════════════════
+
+METODA 1: Automat cu script (Recomandată)
+─────────────────────────────────────────
+cd "/Users/macbook/Desktop/Admin Dashboard/teza_dash"
+bash launch.sh
+
+Sau dublu-click pe launch.sh din Finder
+
+METODA 2: Manual (2 Terminale)
+─────────────────────────────────────────
+Terminal 1 (Backend):
+  cd "/Users/macbook/Desktop/Admin Dashboard/teza_dash/backend"
+  npm run dev
+
+Terminal 2 (Frontend):
+  cd "/Users/macbook/Desktop/Admin Dashboard/teza_dash"
+  npm run dev
+
+✅ VERIFICARE
+═══════════════════════════════════════════════════════════════════════════
+După pornire, trebuie să vezi:
+  Backend: "✅ Server running on http://localhost:3001"
+  Frontend: "▲ Next.js 15.1.6 - Local: http://localhost:3000"
+
+🌐 ACCES
+═════════════════════════════════════════════════════════════════════════════
+Deschide în browser: http://localhost:3000
+
+Vei vedea:
+  1. Pagina de Autentificare (Register/Login)
+  2. Click "Înregistrare" și crează cont
+  3. Completeaza form și apasă "Creează Cont"
+  4. Redirect automat la Dashboard
+  5. Navighează din Sidebar către:
+     - Manage Team (Angajați)
+     - Contacts Information
+     - Invoices Balances
+
+📚 DOCUMENTAȚIE
+═════════════════════════════════════════════════════════════════════════════
+- PROJECT_SUMMARY.md     → Rezumat complet al proiectului
+- README_LAUNCH.md       → Guide detaliat + testing
+- SETUP_GUIDE.md         → Troubleshooting + schema baza de date
+- backend/README.md      → API documentation
+
+🧪 TESTARE RAPIDĂ (Optional)
+═════════════════════════════════════════════════════════════════════════════
+
+1. Register User cu curl:
+   curl -X POST http://localhost:3001/auth/register \
+     -H "Content-Type: application/json" \
+     -d '{
+       "email": "test@example.com",
+       "password": "test123",
+       "firstName": "Ion",
+       "lastName": "Popescu",
+       "phone": "+373 60 123 456",
+       "city": "Chișinău"
+     }'
+
+2. Login:
+   curl -X POST http://localhost:3001/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{
+       "email": "test@example.com",
+       "password": "test123"
+     }'
+
+3. Copiază "access_token" din response și folosește-l pt alte calls
+
+Postman Collection: backend/Postman_Collection.json
+
+💻 FEATURES DISPONIBILE
+═════════════════════════════════════════════════════════════════════════════
+✅ Autentificare JWT sigură
+✅ CRUD Angajați (Add/Edit/Delete)
+✅ CRUD Contacte (View/Delete)
+✅ CRUD Facturi (View/Delete cu statistici)
+✅ Search functionality
+✅ Dark theme profesional
+✅ Responsive design
+✅ Protected routes
+✅ Role-based access
+
+🛑 OPRIRE
+═════════════════════════════════════════════════════════════════════════════
+Kill all servers:
+  killall node
+
+Sau CTRL+C în terminal-urile unde rulează
+
+🔧 TROUBLESHOOTING
+═════════════════════════════════════════════════════════════════════════════
+
+Port 3000/3001 deja în use?
+  lsof -ti:3001 | xargs kill -9
+
+PostgreSQL error?
+  psql -U postgres -d teza_dashboard -c "SELECT 1;"
+
+Database nu există?
+  psql -U postgres -c "CREATE DATABASE teza_dashboard;"
+
+Backend nu răspunde?
+  Asigură-te că e pe 3001: curl http://localhost:3001/health
+
+Frontend nu se încarcă?
+  Verifică că frontend e pe 3000: http://localhost:3000
+
+CORS error?
+  - Backend trebuie pe 3001 (localhost)
+  - Frontend trebuie pe 3000 (localhost)
+  - Nu folosi 127.0.0.1, folosește localhost
+
+📊 TECH STACK
+═════════════════════════════════════════════════════════════════════════════
+Backend:
+  - Node.js + Express.js
+  - PostgreSQL
+  - JWT (jsonwebtoken)
+  - bcryptjs
+
+Frontend:
+  - Next.js 15
+  - React 19
+  - Tailwind CSS
+  - Lucide React (icons)
+
+🎯 DEFAULT CREDENTIALS
+═════════════════════════════════════════════════════════════════════════════
+Poți folosi orice email/parolă pt register, dar iată exemple:
+
+Email: admin@example.com
+Password: admin123
+
+Email: user@example.com
+Password: user123
+
+✨ NOTES
+═════════════════════════════════════════════════════════════════════════════
+- Fiecare user nou primește rol "user"
+- Passwords sunt hashed cu bcrypt (secure)
+- JWT tokens expiră după 7 zile
+- Schimbă JWT_SECRET în .env pt production
+- Database e creată automat la startup
+
+🎊 GATA DE UTILIZAT!
+═════════════════════════════════════════════════════════════════════════════
+Site-ul e 100% funcțional și gata pentru prezentare.
+
+Orice probleme? Citește README_LAUNCH.md sau SETUP_GUIDE.md
+
+Succes! 🚀
