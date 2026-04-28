@@ -1,8 +1,120 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Download, TrendingUp } from "lucide-react";
+import { TrendingUp, DollarSign, TrendingDown, ArrowUpRight } from "lucide-react";
+
+const MONTHS = ["Ian","Feb","Mar","Apr","Mai","Iun","Iul","Aug","Sep","Oct","Nov","Dec"];
+
+export default function BarChartPage() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [totals, setTotals] = useState({ income: 0, expense: 0, profit: 0 });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch('/api/finances', { headers })
+      .then(r => r.ok ? r.json() : [])
+      .then(raw => {
+        const arr = raw.data || raw || [];
+        const year = new Date().getFullYear();
+        const monthly = MONTHS.map((m, idx) => {
+          const monthStr = String(idx + 1).padStart(2, '0');
+          const rows = arr.filter(f => f.date?.startsWith(`${year}-${monthStr}`));
+          const income = rows.filter(f => f.type === 'income').reduce((s, f) => s + (f.amount || 0), 0);
+          const expense = rows.filter(f => f.type === 'expense').reduce((s, f) => s + (f.amount || 0), 0);
+          return { month: m, venituri: +income.toFixed(0), cheltuieli: +expense.toFixed(0), profit: +(income - expense).toFixed(0) };
+        });
+        setData(monthly);
+        const totIncome = arr.filter(f => f.type === 'income').reduce((s, f) => s + (f.amount || 0), 0);
+        const totExpense = arr.filter(f => f.type === 'expense').reduce((s, f) => s + (f.amount || 0), 0);
+        setTotals({ income: totIncome, expense: totExpense, profit: totIncome - totExpense });
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Grafic Bare — Venituri vs Cheltuieli</h1>
+        <p className="text-gray-400 text-sm mt-1">Date financiare reale ale stadionului pe luni, anul {new Date().getFullYear()}</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { label: 'Total Venituri', value: totals.income, color: 'bg-green-600', icon: <TrendingUp size={20} className="text-white" /> },
+          { label: 'Total Cheltuieli', value: totals.expense, color: 'bg-red-600', icon: <TrendingDown size={20} className="text-white" /> },
+          { label: 'Profit Net', value: totals.profit, color: totals.profit >= 0 ? 'bg-teal-600' : 'bg-orange-600', icon: <DollarSign size={20} className="text-white" /> },
+        ].map(card => (
+          <div key={card.label} className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-gray-400 text-xs uppercase tracking-wider">{card.label}</p>
+                <p className="text-white text-2xl font-bold mt-1">{loading ? '...' : `${card.value.toLocaleString('ro-RO')} MDL`}</p>
+              </div>
+              <div className={`${card.color} p-3 rounded-xl`}>{card.icon}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h2 className="text-base font-semibold text-white mb-4">Venituri vs Cheltuieli pe Luni</h2>
+        {loading ? (
+          <div className="h-80 flex items-center justify-center text-gray-400">Se încarcă datele...</div>
+        ) : (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="month" stroke="#9CA3AF" tick={{ fontSize: 12 }} />
+                <YAxis stroke="#9CA3AF" tick={{ fontSize: 11 }} tickFormatter={v => `${v} MDL`} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: 8 }}
+                  labelStyle={{ color: '#F9FAFB', fontWeight: 600 }}
+                  formatter={(v, name) => [`${v.toLocaleString('ro-RO')} MDL`, name]}
+                />
+                <Legend wrapperStyle={{ color: '#9CA3AF', fontSize: 12 }} />
+                <Bar dataKey="venituri" fill="#14B8A6" radius={[4,4,0,0]} />
+                <Bar dataKey="cheltuieli" fill="#EF4444" radius={[4,4,0,0]} />
+                <Bar dataKey="profit" fill="#8B5CF6" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h2 className="text-base font-semibold text-white mb-4">Detalii pe Luni</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-700">
+                <th className="text-left py-2 text-gray-400 font-medium">Luna</th>
+                <th className="text-right py-2 text-gray-400 font-medium">Venituri</th>
+                <th className="text-right py-2 text-gray-400 font-medium">Cheltuieli</th>
+                <th className="text-right py-2 text-gray-400 font-medium">Profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row, i) => (
+                <tr key={i} className="border-b border-gray-800 hover:bg-gray-750">
+                  <td className="py-2 text-gray-300">{row.month}</td>
+                  <td className="py-2 text-right text-green-400">{row.venituri.toLocaleString('ro-RO')} MDL</td>
+                  <td className="py-2 text-right text-red-400">{row.cheltuieli.toLocaleString('ro-RO')} MDL</td>
+                  <td className={`py-2 text-right font-medium ${row.profit >= 0 ? 'text-teal-400' : 'text-orange-400'}`}>{row.profit.toLocaleString('ro-RO')} MDL</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 // Date pentru grafic
 const data = [
@@ -19,162 +131,3 @@ const data = [
   { month: "Nov", sales: 3590, revenue: 4100, profit: 510 },
   { month: "Dec", sales: 4090, revenue: 2100, profit: 990 }
 ];
-
-export default function BarChartPage() {
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-white">BAR CHART</h1>
-          <p className="text-gray-400">Vizualizează datele utilizând grafice cu bare</p>
-        </div>
-        <button className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded flex items-center">
-          <Download size={18} className="mr-2" />
-          EXPORTĂ GRAFIC
-        </button>
-      </div>
-
-      {/* Cards with statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">TOTAL VÂNZĂRI</p>
-              <p className="text-white text-2xl font-bold">52,890</p>
-            </div>
-            <div className="bg-blue-600 p-3 rounded-lg">
-              <TrendingUp size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">TOTAL VENITURI</p>
-              <p className="text-white text-2xl font-bold">98,756 MDL</p>
-            </div>
-            <div className="bg-green-600 p-3 rounded-lg">
-              <TrendingUp size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">TOTAL PROFIT</p>
-              <p className="text-white text-2xl font-bold">43,521 MDL</p>
-            </div>
-            <div className="bg-purple-600 p-3 rounded-lg">
-              <TrendingUp size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Bar Chart */}
-      <div className="bg-dark-800 p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-white mb-4">Evoluția Vânzărilor</h2>
-        <div className="h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={data}
-              margin={{
-                top: 20,
-                right: 30,
-                left: 20,
-                bottom: 5,
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fill: '#9CA3AF' }}
-                tickLine={{ stroke: '#9CA3AF' }}
-              />
-              <YAxis 
-                tick={{ fill: '#9CA3AF' }}
-                tickLine={{ stroke: '#9CA3AF' }}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: '#1F2937',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#F9FAFB'
-                }}
-              />
-              <Legend wrapperStyle={{ color: '#F9FAFB' }} />
-              <Bar dataKey="sales" fill="#3B82F6" name="Vânzări" />
-              <Bar dataKey="revenue" fill="#10B981" name="Venituri" />
-              <Bar dataKey="profit" fill="#8B5CF6" name="Profit" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Comparative Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">Analiza Comparativă - Vânzări vs Profit</h2>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="month" 
-                  tick={{ fill: '#9CA3AF' }}
-                  tickLine={{ stroke: '#9CA3AF' }}
-                />
-                <YAxis 
-                  tick={{ fill: '#9CA3AF' }}
-                  tickLine={{ stroke: '#9CA3AF' }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F9FAFB'
-                  }}
-                />
-                <Legend wrapperStyle={{ color: '#F9FAFB' }} />
-                <Bar dataKey="sales" fill="#3B82F6" />
-                <Bar dataKey="profit" fill="#EF4444" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Data Summary Table */}
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">Sumar Date</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-dark-700 rounded-lg">
-              <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="py-3 px-4 text-left text-gray-300">Luna</th>
-                  <th className="py-3 px-4 text-right text-gray-300">Vânzări</th>
-                  <th className="py-3 px-4 text-right text-gray-300">Venituri</th>
-                  <th className="py-3 px-4 text-right text-gray-300">Profit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.slice(0, 6).map((item) => (
-                  <tr key={item.month} className="border-b border-gray-700 hover:bg-dark-600">
-                    <td className="py-3 px-4 text-gray-300">{item.month}</td>
-                    <td className="py-3 px-4 text-right text-gray-300">{item.sales.toLocaleString()}</td>
-                    <td className="py-3 px-4 text-right text-gray-300">{item.revenue.toLocaleString()} MDL</td>
-                    <td className="py-3 px-4 text-right text-gray-300">{item.profit.toLocaleString()} MDL</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

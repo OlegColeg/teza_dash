@@ -1,8 +1,147 @@
 "use client";
 
-import React, { useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Download, PieChart as PieIcon, Target, Users } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+
+const COLORS = ["#14B8A6","#3B82F6","#F59E0B","#EF4444","#8B5CF6","#EC4899","#10B981","#F97316"];
+
+export default function PieChartPage() {
+  const [categoryData, setCategoryData] = useState([]);
+  const [teamData, setTeamData] = useState([]);
+  const [tab, setTab] = useState('categories');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    Promise.all([
+      fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : []),
+      fetch('/api/teams', { headers }).then(r => r.ok ? r.json() : []),
+      fetch('/api/reservations', { headers }).then(r => r.ok ? r.json() : []),
+    ]).then(([fins, teamsRaw, resRaw]) => {
+      const finArr = fins.data || fins || [];
+      const teamsArr = teamsRaw.data || teamsRaw || [];
+      const resArr = resRaw.data || resRaw || [];
+
+      // Categorii venituri
+      const incomeByCategory = {};
+      finArr.filter(f => f.type === 'income').forEach(f => {
+        const cat = f.category || 'Altele';
+        incomeByCategory[cat] = (incomeByCategory[cat] || 0) + (f.amount || 0);
+      });
+      const cats = Object.entries(incomeByCategory)
+        .map(([name, value]) => ({ name, value: +value.toFixed(0) }))
+        .sort((a, b) => b.value - a.value);
+      setCategoryData(cats);
+
+      // Echipe după nr. rezervări
+      const resByTeam = {};
+      resArr.forEach(r => {
+        const name = r.team?.name || r.teamId || 'Necunoscut';
+        resByTeam[name] = (resByTeam[name] || 0) + 1;
+      });
+      const teams = Object.entries(resByTeam)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 8);
+      setTeamData(teams);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const activeData = tab === 'categories' ? categoryData : teamData;
+  const total = activeData.reduce((s, d) => s + d.value, 0);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Grafic Circular</h1>
+        <p className="text-gray-400 text-sm mt-1">Distribuția veniturilor și activitatea echipelor</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2">
+        {[
+          { key: 'categories', label: 'Venituri pe Categorii' },
+          { key: 'teams', label: 'Echipe după Rezervări' },
+        ].map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t.key ? 'bg-teal-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="bg-gray-800 rounded-xl p-10 text-center text-gray-400 border border-gray-700">Se încarcă datele...</div>
+      ) : activeData.length === 0 ? (
+        <div className="bg-gray-800 rounded-xl p-10 text-center text-gray-400 border border-gray-700">Nu există date suficiente</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <h2 className="text-sm font-semibold text-gray-300 mb-4">
+              {tab === 'categories' ? 'Distribuție Venituri' : 'Activitate Echipe'}
+            </h2>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={activeData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={110}
+                    dataKey="value"
+                    paddingAngle={2}
+                  >
+                    {activeData.map((entry, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: 8 }}
+                    formatter={(v, name) => [tab === 'categories' ? `${v.toLocaleString('ro-RO')} MDL` : `${v} rezervări`, name]}
+                  />
+                  <Legend wrapperStyle={{ color: '#9CA3AF', fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <h2 className="text-sm font-semibold text-gray-300 mb-4">Detalii</h2>
+            <div className="space-y-3">
+              {activeData.map((item, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-300 truncate">{item.name}</p>
+                    <div className="h-1.5 bg-gray-700 rounded-full mt-1">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${total > 0 ? (item.value / total * 100) : 0}%`, backgroundColor: COLORS[i % COLORS.length] }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-medium text-white">
+                      {tab === 'categories' ? `${item.value.toLocaleString('ro-RO')} MDL` : `${item.value} rez.`}
+                    </p>
+                    <p className="text-xs text-gray-500">{total > 0 ? (item.value / total * 100).toFixed(1) : 0}%</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // Date pentru graficul pie
 const pieData = [
@@ -30,254 +169,3 @@ const regionData = [
   { name: "Est", value: 10, color: "#EF4444" },
   { name: "Vest", value: 5, color: "#8B5CF6" }
 ];
-
-export default function PieChartPage() {
-  const [selectedChart, setSelectedChart] = useState("device");
-
-  // Funcție pentru customizarea label-urilor
-  const renderLabel = (entry) => {
-    return `${entry.name}: ${entry.value}%`;
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-white">PIE CHART</h1>
-          <p className="text-gray-400">Vizualizează distribuția datelor utilizând grafice circulare</p>
-        </div>
-        <button className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded flex items-center">
-          <Download size={18} className="mr-2" />
-          EXPORTĂ GRAFIC
-        </button>
-      </div>
-
-      {/* Chart Selection Tabs */}
-      <div className="bg-dark-800 p-4 rounded-lg">
-        <div className="flex space-x-4">
-          <button
-            onClick={() => setSelectedChart("device")}
-            className={`px-4 py-2 rounded ${
-              selectedChart === "device" ? "bg-teal-600 text-white" : "bg-dark-700 text-gray-300"
-            }`}
-          >
-            Dispositiv Access
-          </button>
-          <button
-            onClick={() => setSelectedChart("category")}
-            className={`px-4 py-2 rounded ${
-              selectedChart === "category" ? "bg-teal-600 text-white" : "bg-dark-700 text-gray-300"
-            }`}
-          >
-            Categorii Produse
-          </button>
-          <button
-            onClick={() => setSelectedChart("region")}
-            className={`px-4 py-2 rounded ${
-              selectedChart === "region" ? "bg-teal-600 text-white" : "bg-dark-700 text-gray-300"
-            }`}
-          >
-            Distribuție Regională
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">TOTAL USERS</p>
-              <p className="text-white text-2xl font-bold">15,678</p>
-            </div>
-            <div className="bg-blue-600 p-3 rounded-lg">
-              <Users size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">CONVERSIONS</p>
-              <p className="text-white text-2xl font-bold">82.5%</p>
-            </div>
-            <div className="bg-green-600 p-3 rounded-lg">
-              <Target size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">TOP CATEGORY</p>
-              <p className="text-white text-2xl font-bold">Tehnologie</p>
-            </div>
-            <div className="bg-purple-600 p-3 rounded-lg">
-              <PieIcon size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">AVERAGE ORDER</p>
-              <p className="text-white text-2xl font-bold">245 MDL</p>
-            </div>
-            <div className="bg-orange-600 p-3 rounded-lg">
-              <Target size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Pie Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">
-            {selectedChart === "device" && "Distribuție Accesuri după Dispozitiv"}
-            {selectedChart === "category" && "Vânzări după Categorii"}
-            {selectedChart === "region" && "Distribuție Regională"}
-          </h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={
-                    selectedChart === "device" ? pieData :
-                    selectedChart === "category" ? categoryData :
-                    regionData
-                  }
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={renderLabel}
-                  outerRadius={120}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {(selectedChart === "device" ? pieData :
-                    selectedChart === "category" ? categoryData :
-                    regionData).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color || pieData[index].color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F9FAFB'
-                  }}
-                />
-                <Legend wrapperStyle={{ color: '#F9FAFB' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Data Table */}
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">Detalii Date</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-dark-700 rounded-lg">
-              <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="py-3 px-4 text-left text-gray-300">Categorie</th>
-                  <th className="py-3 px-4 text-right text-gray-300">Procent</th>
-                  {selectedChart === "category" && (
-                    <th className="py-3 px-4 text-right text-gray-300">Sumă (MDL)</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {(selectedChart === "device" ? pieData :
-                  selectedChart === "category" ? categoryData :
-                  regionData).map((item, index) => (
-                  <tr key={index} className="border-b border-gray-700 hover:bg-dark-600">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center">
-                        <div 
-                          className="w-4 h-4 rounded-full mr-3"
-                          style={{ backgroundColor: item.color || pieData[index].color }}
-                        ></div>
-                        <span className="text-gray-300">{item.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right text-gray-300">{item.value}%</td>
-                    {selectedChart === "category" && (
-                      <td className="py-3 px-4 text-right text-gray-300">
-                        {item.amount?.toLocaleString()} MDL
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Additional Chart - Bar Chart Comparison */}
-      {selectedChart === "category" && (
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">Comparație Vânzări pe Categorii</h2>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={categoryData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: '#9CA3AF' }}
-                  tickLine={{ stroke: '#9CA3AF' }}
-                />
-                <YAxis 
-                  tick={{ fill: '#9CA3AF' }}
-                  tickLine={{ stroke: '#9CA3AF' }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F9FAFB'
-                  }}
-                />
-                <Bar dataKey="amount" fill="#3B82F6" name="Vânzări (MDL)" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Insights */}
-      <div className="bg-dark-800 p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-white mb-4">Insights & Analiză</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-dark-700 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-2">Key Findings</h3>
-            <ul className="text-gray-300 space-y-2">
-              <li>• Desktop domină cu 45% din accesuri</li>
-              <li>• Categoria Tehnologie generează cele mai mari venituri</li>
-              <li>• Regiunea Nord are cea mai mare cotă de piață</li>
-              <li>• Mobile-ul crește cu 15% față de luna trecută</li>
-            </ul>
-          </div>
-          
-          <div className="bg-dark-700 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-2">Recommendations</h3>
-            <ul className="text-gray-300 space-y-2">
-              <li>• Optimizați experiența mobile</li>
-              <li>• Investiți mai mult în categoria Tehnologie</li>
-              <li>• Explorați piețele din Est și Vest</li>
-              <li>• Dezvoltați strategia pentru tablet</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

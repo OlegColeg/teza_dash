@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import "./globals.css";
 import Sidebar from "@/app/components/layout/Sidebar";
 import Navbar from "@/app/components/layout/Navbar";
+import AccessibilityPanel from "@/app/components/AccessibilityPanel";
 
 const PUBLIC_PATHS = ['/login', '/register'];
 
@@ -15,6 +16,7 @@ export default function RootLayout({ children }) {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [accessibilityOpen, setAccessibilityOpen] = useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -109,11 +111,13 @@ export default function RootLayout({ children }) {
                 toggleTheme={toggleTheme}
                 user={user}
                 onLogout={handleLogout}
+                onOpenAccessibility={() => setAccessibilityOpen(true)}
               />
               <main className="p-5">
                 {children}
               </main>
             </div>
+            <AccessibilityPanel open={accessibilityOpen} onClose={() => setAccessibilityOpen(false)} />
           </div>
         ) : null}
       </body>

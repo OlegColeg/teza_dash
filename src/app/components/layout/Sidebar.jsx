@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Home, Users, Calendar, BarChart2, PieChart, TrendingUp, Map, DollarSign, AlertTriangle, LogOut, Calculator } from 'lucide-react';
 
-const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
+const Sidebar = ({ sidebarVisible, toggleSidebar, user, onLogout }) => {
   const [expanded, setExpanded] = useState({
     data: true,
     pages: true,
@@ -21,18 +21,6 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
 
   return (
     <>
-      {/* Sidebar hamburger button when collapsed */}
-      {!sidebarVisible && (
-        <button 
-          onClick={toggleSidebar} 
-          className="fixed top-3 left-4 z-20 text-white bg-gray-800 p-2 rounded-md"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      )}
-      
       {/* Main sidebar */}
       <div className={`max-h-screen overflow-y-auto
         [&::-webkit-scrollbar]:w-2
@@ -58,11 +46,16 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
 
         {/* User Profile */}
         <div className="px-6 py-6 flex flex-col items-center border-b border-gray-800">
-          <div className="h-20 w-20 rounded-full overflow-hidden mb-4">
-            <img src="/image/olegAdmin.jpg" alt="User profile" className="h-full w-full object-cover" />
+          <div className="h-16 w-16 rounded-full overflow-hidden mb-3 bg-teal-600 flex items-center justify-center">
+            <img
+              src="/image/olegAdmin.jpg"
+              alt="User profile"
+              className="h-full w-full object-cover"
+              onError={e => { e.target.style.display = 'none'; }}
+            />
           </div>
-          <h2 className="text-xl font-semibold text-white">Oală Oală</h2>
-          <p className="text-sm text-gray-400">Main Administrator</p>
+          <h2 className="text-base font-semibold text-white">{user?.username || 'Administrator'}</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Administrator</p>
         </div>
 
         {/* Navigation */}
@@ -132,13 +125,8 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
           {/* Logout */}
           <div className="mt-6 px-3 pb-4">
             <button
-              onClick={() => {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = '/login';
-              }}
-              className="w-full flex items-center px-3 py-2 text-gray-400 hover:bg-gray-800 hover:text-white rounded-md"
+              onClick={onLogout}
+              className="w-full flex items-center px-3 py-2 text-gray-400 hover:bg-gray-800 hover:text-white rounded-md transition-colors"
             >
               <LogOut size={20} className="mr-3" />
               <span>Deconectare</span>

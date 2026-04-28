@@ -1,8 +1,133 @@
 "use client";
 
-import React, { useState } from "react";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
-import { Download, Globe, TrendingUp, Map } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts";
+import { Users, DollarSign, Activity } from "lucide-react";
+
+const COLORS = ["#14B8A6","#3B82F6","#F59E0B","#EF4444","#8B5CF6","#EC4899","#10B981","#F97316"];
+
+export default function GeographyChartPage() {
+  const [teamStats, setTeamStats] = useState([]);
+  const [incomeStats, setIncomeStats] = useState([]);
+  const [tab, setTab] = useState('teams');
+  const [loading, setLoading] = useState(true);
+  const [totals, setTotals] = useState({ teams: 0, reservations: 0, income: 0 });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    Promise.all([
+      fetch('/api/teams', { headers }).then(r => r.ok ? r.json() : []),
+      fetch('/api/reservations', { headers }).then(r => r.ok ? r.json() : []),
+      fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : []),
+    ]).then(([teamsRaw, resRaw, finsRaw]) => {
+      const teamsArr = teamsRaw.data || teamsRaw || [];
+      const resArr = resRaw.data || resRaw || [];
+      const finsArr = finsRaw.data || finsRaw || [];
+
+      // Teams ranked by reservations + income
+      const teamMap = {};
+      teamsArr.forEach(t => {
+        teamMap[t.id] = { name: t.name || t.id, reservations: 0, income: 0 };
+      });
+      resArr.forEach(r => {
+        const key = r.teamId || r.team?.id;
+        if (!teamMap[key]) teamMap[key] = { name: r.team?.name || key, reservations: 0, income: 0 };
+        teamMap[key].reservations += 1;
+        teamMap[key].income += r.totalPrice || r.price || 0;
+      });
+      const stats = Object.values(teamMap)
+        .sort((a, b) => b.reservations - a.reservations)
+        .slice(0, 10);
+      setTeamStats(stats);
+
+      // Income by category
+      const catMap = {};
+      finsArr.filter(f => f.type === 'income').forEach(f => {
+        const k = f.category || 'Altele';
+        catMap[k] = (catMap[k] || 0) + (f.amount || 0);
+      });
+      const incStats = Object.entries(catMap)
+        .map(([name, total]) => ({ name, total: +total.toFixed(0) }))
+        .sort((a, b) => b.total - a.total);
+      setIncomeStats(incStats);
+
+      const totalIncome = finsArr.filter(f => f.type === 'income').reduce((s, f) => s + (f.amount || 0), 0);
+      setTotals({ teams: teamsArr.length, reservations: resArr.length, income: +totalIncome.toFixed(0) });
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const activeData = tab === 'teams'
+    ? teamStats.map(t => ({ name: t.name, valoare: t.reservations, label: 'rezervări' }))
+    : incomeStats.map(i => ({ name: i.name, valoare: i.total, label: 'MDL' }));
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Grafic Distribuție</h1>
+        <p className="text-gray-400 text-sm mt-1">Activitatea echipelor și sursele de venit ale stadionului</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { icon: <Users size={18}/>, label: 'Total Echipe', value: totals.teams },
+          { icon: <Activity size={18}/>, label: 'Total Rezervări', value: totals.reservations },
+          { icon: <DollarSign size={18}/>, label: 'Total Venituri', value: `${totals.income.toLocaleString('ro-RO')} MDL` },
+        ].map((card, i) => (
+          <div key={i} className="bg-gray-800 rounded-xl p-4 border border-gray-700 flex items-center gap-3">
+            <div className="text-teal-400">{card.icon}</div>
+            <div>
+              <p className="text-xs text-gray-400">{card.label}</p>
+              <p className="text-lg font-bold text-white">{loading ? '...' : card.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2">
+        {[
+          { key: 'teams', label: 'Top Echipe (Rezervări)' },
+          { key: 'income', label: 'Surse de Venit' },
+        ].map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t.key ? 'bg-teal-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        {loading ? (
+          <div className="h-80 flex items-center justify-center text-gray-400">Se încarcă datele...</div>
+        ) : activeData.length === 0 ? (
+          <div className="h-80 flex items-center justify-center text-gray-400">Nu există date suficiente</div>
+        ) : (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={activeData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" horizontal={false} />
+                <XAxis type="number" stroke="#9CA3AF" tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" stroke="#9CA3AF" tick={{ fontSize: 11 }} width={75} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: 8 }}
+                  formatter={(v, name, props) => [
+                    tab === 'teams' ? `${v} rezervări` : `${v.toLocaleString('ro-RO')} MDL`,
+                    tab === 'teams' ? 'Rezervări' : 'Venit'
+                  ]}
+                />
+                <Bar dataKey="valoare" radius={[0, 4, 4, 0]}>
+                  {activeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 // Date pentru distribuția regională globală
 const regionsData = [
@@ -22,171 +147,3 @@ const countriesData = [
   { country: "UK", sales: 682, growth: "+5%" },
   { country: "Franța", sales: 580, growth: "+7%" }
 ];
-
-export default function GeographyChartPage() {
-  const [viewMode, setViewMode] = useState("all");
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-white">GEOGRAPHY CHART</h1>
-          <p className="text-gray-400">Vizualizează distribuția globală a datelor</p>
-        </div>
-        <button className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded flex items-center">
-          <Download size={18} className="mr-2" />
-          EXPORTĂ DATE
-        </button>
-      </div>
-
-      {/* View Selector */}
-      <div className="bg-dark-800 p-4 rounded-lg">
-        <div className="flex space-x-4">
-          <button
-            onClick={() => setViewMode("all")}
-            className={`px-4 py-2 rounded ${
-              viewMode === "all" ? "bg-teal-600 text-white" : "bg-dark-700 text-gray-300"
-            }`}
-          >
-            Vizualizare Globală
-          </button>
-          <button
-            onClick={() => setViewMode("europe")}
-            className={`px-4 py-2 rounded ${
-              viewMode === "europe" ? "bg-teal-600 text-white" : "bg-dark-700 text-gray-300"
-            }`}
-          >
-            Focus Europa
-          </button>
-          <button
-            onClick={() => setViewMode("asia")}
-            className={`px-4 py-2 rounded ${
-              viewMode === "asia" ? "bg-teal-600 text-white" : "bg-dark-700 text-gray-300"
-            }`}
-          >
-            Focus Asia
-          </button>
-        </div>
-      </div>
-
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">ȚĂRI ACTIVE</p>
-              <p className="text-white text-2xl font-bold">78</p>
-            </div>
-            <div className="bg-blue-600 p-3 rounded-lg">
-              <Globe size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">REGIUNEA DE TOP</p>
-              <p className="text-white text-2xl font-bold">Europa</p>
-            </div>
-            <div className="bg-green-600 p-3 rounded-lg">
-              <Map size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">CREȘTERE GLOBALĂ</p>
-              <p className="text-white text-2xl font-bold">+8.5%</p>
-            </div>
-            <div className="bg-purple-600 p-3 rounded-lg">
-              <TrendingUp size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Map and Charts Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* World Map */}
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">Hartă Distribuție Globală</h2>
-          <div className="h-80 bg-dark-700 rounded flex items-center justify-center">
-            <div className="text-center">
-              <Map size={64} className="text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-300">
-                {viewMode === "all" ? "Vizualizare Globală" : 
-                 viewMode === "europe" ? "Focalizare pe Europa" : "Focalizare pe Asia"}
-              </p>
-              <p className="text-gray-400 text-sm mt-2">
-                Click pe regiuni pentru detalii suplimentare
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Distribution Pie Chart */}
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">Distribuție Regională</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={regionsData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={120}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}%`}
-                >
-                  {regionsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F9FAFB'
-                  }}
-                />
-                <Legend wrapperStyle={{ color: '#F9FAFB' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Countries Table */}
-      <div className="bg-dark-800 p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-white mb-4">Top Țări după Vânzări</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-dark-700 rounded-lg">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="py-3 px-4 text-left text-gray-300">Țară</th>
-                <th className="py-3 px-4 text-right text-gray-300">Vânzări</th>
-                <th className="py-3 px-4 text-right text-gray-300">Creștere</th>
-              </tr>
-            </thead>
-            <tbody>
-              {countriesData.map((item, index) => (
-                <tr key={index} className="border-b border-gray-700 hover:bg-dark-600">
-                  <td className="py-3 px-4 text-gray-300">{item.country}</td>
-                  <td className="py-3 px-4 text-right text-gray-300">{item.sales}</td>
-                  <td className="py-3 px-4 text-right text-green-500">{item.growth}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}

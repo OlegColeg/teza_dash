@@ -1,8 +1,96 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Download, TrendingUp, Users, ShoppingCart, DollarSign } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
+
+const MONTHS = ["Ian","Feb","Mar","Apr","Mai","Iun","Iul","Aug","Sep","Oct","Nov","Dec"];
+
+export default function LineChartPage() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [bestMonth, setBestMonth] = useState(null);
+  const [trend, setTrend] = useState(0);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    Promise.all([
+      fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : []),
+      fetch('/api/reservations', { headers }).then(r => r.ok ? r.json() : []),
+    ]).then(([fins, resRaw]) => {
+      const finArr = fins.data || fins || [];
+      const resArr = resRaw.data || resRaw || [];
+      const year = new Date().getFullYear();
+      const monthly = MONTHS.map((m, idx) => {
+        const monthStr = String(idx + 1).padStart(2, '0');
+        const rows = finArr.filter(f => f.date?.startsWith(`${year}-${monthStr}`));
+        const income = rows.filter(f => f.type === 'income').reduce((s, f) => s + (f.amount || 0), 0);
+        const expense = rows.filter(f => f.type === 'expense').reduce((s, f) => s + (f.amount || 0), 0);
+        const rezervari = resArr.filter(r => r.date?.startsWith(`${year}-${monthStr}`)).length;
+        return { month: m, venituri: +income.toFixed(0), cheltuieli: +expense.toFixed(0), profit: +(income - expense).toFixed(0), rezervari };
+      });
+      setData(monthly);
+      const best = monthly.reduce((b, d) => d.profit > b.profit ? d : b, monthly[0]);
+      setBestMonth(best);
+      const last3 = monthly.slice(-3).map(d => d.profit);
+      if (last3.length >= 2) setTrend(last3[last3.length-1] - last3[0]);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Grafic Liniar — Evoluție Financiară</h1>
+        <p className="text-gray-400 text-sm mt-1">Tendințe venituri, cheltuieli și profit în timp real</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <p className="text-xs text-gray-400 uppercase tracking-wider">Luna cu cel mai mare profit</p>
+          <p className="text-white text-xl font-bold mt-1">{loading ? '...' : bestMonth ? `${bestMonth.month} — ${bestMonth.profit.toLocaleString('ro-RO')} MDL` : 'N/A'}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <p className="text-xs text-gray-400 uppercase tracking-wider">Tendință ultimele 3 luni</p>
+          <div className="flex items-center gap-2 mt-1">
+            {trend >= 0 ? <TrendingUp size={20} className="text-teal-400" /> : <TrendingDown size={20} className="text-red-400" />}
+            <p className={`text-xl font-bold ${trend >= 0 ? 'text-teal-400' : 'text-red-400'}`}>
+              {loading ? '...' : `${trend >= 0 ? '+' : ''}${trend.toLocaleString('ro-RO')} MDL`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h2 className="text-base font-semibold text-white mb-4">Evoluție lunară {new Date().getFullYear()}</h2>
+        {loading ? (
+          <div className="h-80 flex items-center justify-center text-gray-400">Se încarcă datele...</div>
+        ) : (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="month" stroke="#9CA3AF" tick={{ fontSize: 12 }} />
+                <YAxis stroke="#9CA3AF" tick={{ fontSize: 11 }} tickFormatter={v => `${v}`} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: 8 }}
+                  formatter={(v, name) => name === 'rezervari' ? [`${v} rez.`, name] : [`${v.toLocaleString('ro-RO')} MDL`, name]}
+                />
+                <Legend wrapperStyle={{ color: '#9CA3AF', fontSize: 12 }} />
+                <Line type="monotone" dataKey="venituri" stroke="#14B8A6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="cheltuieli" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="profit" stroke="#8B5CF6" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="rezervari" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} yAxisId={0} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 // Date pentru grafic
 const data = [
@@ -19,127 +107,3 @@ const data = [
   { name: "Nov", visits: 5900, sales: 4000, revenue: 2700 },
   { name: "Dec", visits: 4200, sales: 3200, revenue: 2100 }
 ];
-
-export default function LineChartPage() {
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-white">LINE CHART</h1>
-          <p className="text-gray-400">Vizualizează evoluția datelor în timp</p>
-        </div>
-        <button className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded flex items-center">
-          <Download size={18} className="mr-2" />
-          EXPORTĂ GRAFIC
-        </button>
-      </div>
-
-      {/* Cards with statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">TOTAL VIZITE</p>
-              <p className="text-white text-2xl font-bold">124,578</p>
-            </div>
-            <div className="bg-blue-600 p-3 rounded-lg">
-              <Users size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">TOTAL VÂNZĂRI</p>
-              <p className="text-white text-2xl font-bold">43,680</p>
-            </div>
-            <div className="bg-green-600 p-3 rounded-lg">
-              <ShoppingCart size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-dark-800 p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-sm">VENIT TOTAL</p>
-              <p className="text-white text-2xl font-bold">98,520 MDL</p>
-            </div>
-            <div className="bg-purple-600 p-3 rounded-lg">
-              <DollarSign size={24} className="text-white" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Line Chart */}
-      <div className="bg-dark-800 p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-white mb-4">Evoluția Anuală</h2>
-        <div className="h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={data}
-              margin={{
-                top: 20,
-                right: 30,
-                left: 20,
-                bottom: 5,
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis 
-                dataKey="name" 
-                tick={{ fill: '#9CA3AF' }}
-                tickLine={{ stroke: '#9CA3AF' }}
-              />
-              <YAxis 
-                tick={{ fill: '#9CA3AF' }}
-                tickLine={{ stroke: '#9CA3AF' }}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: '#1F2937',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#F9FAFB'
-                }}
-              />
-              <Legend wrapperStyle={{ color: '#F9FAFB' }} />
-              <Line type="monotone" dataKey="visits" stroke="#3B82F6" activeDot={{ r: 8 }} name="Vizite" />
-              <Line type="monotone" dataKey="sales" stroke="#10B981" name="Vânzări" />
-              <Line type="monotone" dataKey="revenue" stroke="#8B5CF6" name="Venituri" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Performance Overview */}
-      <div className="bg-dark-800 p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-white mb-4">Analiză Performanță</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-dark-700 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-2">Tendințe</h3>
-            <ul className="text-gray-300 space-y-2">
-              <li>• Creștere de 15% în vizite față de anul trecut</li>
-              <li>• Vârful de vânzări în luna Noiembrie</li>
-              <li>• Corelație puternică între vizite și vânzări</li>
-              <li>• Sezonalitate identificată în Q4</li>
-            </ul>
-          </div>
-          
-          <div className="bg-dark-700 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-2">Recomandări</h3>
-            <ul className="text-gray-300 space-y-2">
-              <li>• Intensificarea campaniilor în perioadele de vârf</li>
-              <li>• Optimizarea experienței utilizatorilor pentru conversii mai bune</li>
-              <li>• Focusare pe strategii de retenție în perioadele de scădere</li>
-              <li>• Adaptarea stocurilor în funcție de tendințele observate</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
