@@ -1,0 +1,54 @@
+[
+  {
+    "id": "res-1",
+    "teamId": "team-1",
+    "teamName": "FC Vulturii",
+    "date": "2025-04-28",
+    "startTime": "18:00",
+    "endTime": "19:00",
+    "hours": 1,
+    "totalCost": 200,
+    "paymentStatus": "deferred",
+    "paidAmount": 0,
+    "createdAt": "2025-04-28T08:00:00.000Z"
+  },
+  {
+    "id": "res-2",
+    "teamId": "team-2",
+    "teamName": "Steaua Nordului",
+    "date": "2025-04-28",
+    "startTime": "19:00",
+    "endTime": "20:00",
+    "hours": 1,
+    "totalCost": 200,
+    "paymentStatus": "paid",
+    "paidAmount": 200,
+    "createdAt": "2025-04-28T08:05:00.000Z"
+  },
+  {
+    "id": "res-3",
+    "teamId": "team-3",
+    "teamName": "FC Dinamo Bălți",
+    "date": "2025-04-29",
+    "startTime": "17:00",
+    "endTime": "19:00",
+    "hours": 2,
+    "totalCost": 400,
+    "paymentStatus": "deferred",
+    "paidAmount": 0,
+    "createdAt": "2025-04-28T08:10:00.000Z"
+  },
+  {
+    "id": "res-39d25e5a-9616-48a1-b813-a736b2de23d7",
+    "teamId": "team-3",
+    "teamName": "FC Dinamo Bălți",
+    "date": "2026-04-29",
+    "startTime": "18:00",
+    "endTime": "19:00",
+    "hours": 1,
+    "totalCost": 200,
+    "paymentStatus": "deferred",
+    "paidAmount": 0,
+    "createdAt": "2026-04-28T12:55:47.459Z"
+  }
+]

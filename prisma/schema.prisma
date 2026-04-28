@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────
+// Entitate 1: Utilizatori (Administratori)
+// ─────────────────────────────────────────────
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // bcrypt hash
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────
+// Entitate 2: Echipe (Clienți)
+// ─────────────────────────────────────────────
+model Team {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  phone        String?
+  hourlyRate   Float         @default(100)
+  balance      Float         @default(0)  // negativ = datorie
+  createdAt    DateTime      @default(now())
+  reservations Reservation[]
+  finances     Finance[]
+}
+
+// ─────────────────────────────────────────────
+// Entitate 3: Rezervări (Programări Orar)
+// ─────────────────────────────────────────────
+model Reservation {
+  id        String   @id @default(uuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  date      String   // YYYY-MM-DD
+  startTime String   // HH:MM
+  endTime   String   // HH:MM
+  cost      Float
+  status    String   @default("paid") // "paid" | "deferred"
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────
+// Entitate 4: Finanțe (Încasări și Cheltuieli)
+// ─────────────────────────────────────────────
+model Finance {
+  id          String   @id @default(uuid())
+  type        String   // "income" | "expense"
+  category    String
+  client      String?  // numele clientului / echipei
+  description String?
+  notes       String?
+  amount      Float
+  date        String   // YYYY-MM-DD
+  teamId      String?
+  team        Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────
+// Entitate 5: Calculator Bancnote (singleton)
+// ─────────────────────────────────────────────
+model CashCalculator {
+  id        String   @id @default("singleton")
+  bills     Json     @default("{\"200\":0,\"100\":0,\"50\":0,\"20\":0,\"10\":0,\"5\":0,\"1\":0}")
+  coins     Json     @default("{\"10\":0,\"5\":0,\"2\":0,\"1\":0}")
+  updatedAt DateTime @updatedAt
+}

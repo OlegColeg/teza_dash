@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, Users, FileText, FilePlus, Calendar, HelpCircle, BarChart2, PieChart, TrendingUp, Map } from 'lucide-react';
+import { Home, Users, Calendar, BarChart2, PieChart, TrendingUp, Map, DollarSign, AlertTriangle, LogOut, Calculator } from 'lucide-react';
 
 const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
   const [expanded, setExpanded] = useState({
@@ -78,41 +78,28 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
           {/* Data Section */}
           <div className="mt-6">
             <div className="px-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Data
+              Stadion
             </div>
             <div className="px-3">
               <Link href="/dashboard/team" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <Users size={20} className="mr-3" />
-                <span>Manage Team</span>
-              </Link>
-              <Link href="/contacts" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
-                <FileText size={20} className="mr-3" />
-                <span>Contacts Information</span>
-              </Link>
-              <Link href="/invoices" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
-                <FilePlus size={20} className="mr-3" />
-                <span>Invoices Balances</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Pages Section */}
-          <div className="mt-6">
-            <div className="px-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Pages
-            </div>
-            <div className="px-3">
-              <Link href="/profile" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
-                <Users size={20} className="mr-3" />
-                <span>Profile Form</span>
+                <span>Echipe</span>
               </Link>
               <Link href="/calendar" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <Calendar size={20} className="mr-3" />
-                <span>Calendar</span>
+                <span>Calendar Rezervări</span>
               </Link>
-              <Link href="/faq" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
-                <HelpCircle size={20} className="mr-3" />
-                <span>FAQ Page</span>
+              <Link href="/finances" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
+                <DollarSign size={20} className="mr-3" />
+                <span>Finanțe</span>
+              </Link>
+              <Link href="/debts" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
+                <AlertTriangle size={20} className="mr-3" />
+                <span>Datorii</span>
+              </Link>
+              <Link href="/cash-calculator" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
+                <Calculator size={20} className="mr-3" />
+                <span>Calculator Bancnote</span>
               </Link>
             </div>
           </div>
@@ -120,26 +107,42 @@ const Sidebar = ({ sidebarVisible, toggleSidebar }) => {
           {/* Charts Section */}
           <div className="mt-6">
             <div className="px-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Charts
+              Grafice
             </div>
             <div className="px-3">
               <Link href="/charts/bar" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <BarChart2 size={20} className="mr-3" />
-                <span>Bar Chart</span>
+                <span>Grafic Bare</span>
               </Link>
               <Link href="/charts/pie" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <PieChart size={20} className="mr-3" />
-                <span>Pie Chart</span>
+                <span>Grafic Circular</span>
               </Link>
               <Link href="/charts/line" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <TrendingUp size={20} className="mr-3" />
-                <span>Line Chart</span>
+                <span>Grafic Liniar</span>
               </Link>
               <Link href="/charts/geo" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <Map size={20} className="mr-3" />
-                <span>Geography Chart</span>
+                <span>Hartă Geografică</span>
               </Link>
             </div>
+          </div>
+
+          {/* Logout */}
+          <div className="mt-6 px-3 pb-4">
+            <button
+              onClick={() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+              }}
+              className="w-full flex items-center px-3 py-2 text-gray-400 hover:bg-gray-800 hover:text-white rounded-md"
+            >
+              <LogOut size={20} className="mr-3" />
+              <span>Deconectare</span>
+            </button>
           </div>
         </nav>
       </div>

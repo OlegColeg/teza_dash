@@ -1,0 +1,65 @@
+[
+  {
+    "id": "fin-1",
+    "type": "income",
+    "category": "chirie_teren",
+    "description": "Chirie teren - FC Vulturii",
+    "amount": 400,
+    "date": "2025-04-20",
+    "createdAt": "2025-04-20T10:00:00.000Z"
+  },
+  {
+    "id": "fin-2",
+    "type": "income",
+    "category": "chirie_teren",
+    "description": "Chirie teren - Steaua Nordului",
+    "amount": 600,
+    "date": "2025-04-21",
+    "createdAt": "2025-04-21T10:00:00.000Z"
+  },
+  {
+    "id": "fin-4",
+    "type": "expense",
+    "category": "salariu",
+    "description": "Salariu paznic Aprilie",
+    "amount": 3000,
+    "date": "2025-04-25",
+    "createdAt": "2025-04-25T10:00:00.000Z"
+  },
+  {
+    "id": "fin-5",
+    "type": "income",
+    "category": "chirie_teren",
+    "description": "Chirie teren - Rapid Chișinău",
+    "amount": 1000,
+    "date": "2025-04-26",
+    "createdAt": "2025-04-26T10:00:00.000Z"
+  },
+  {
+    "id": "fin-c6ff50f0-69b4-43bf-add6-61e7c9548ee0",
+    "type": "income",
+    "category": "chirie_teren",
+    "description": "Oleg Echipa",
+    "amount": 500,
+    "date": "2026-04-28",
+    "createdAt": "2026-04-28T12:54:12.064Z"
+  },
+  {
+    "id": "fin-531914f6-ec5d-4286-8fbb-e27e15801477",
+    "type": "income",
+    "category": "chirie_teren",
+    "description": "ARcadii",
+    "amount": 500,
+    "date": "2026-04-28",
+    "createdAt": "2026-04-28T12:54:38.638Z"
+  },
+  {
+    "id": "fin-37a473e1-9d23-41b9-88ce-fb884051d0be",
+    "type": "income",
+    "category": "chirie_teren",
+    "description": "Gheorcghe Sectia",
+    "amount": 436,
+    "date": "2026-04-28",
+    "createdAt": "2026-04-28T12:55:16.783Z"
+  }
+]
