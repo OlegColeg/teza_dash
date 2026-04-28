@@ -1,46 +1,22 @@
-// pages/api/teams/[id].js
-import { readJSON, writeJSON } from '../../../lib/db';
-import { requireAuth } from '../../../lib/auth';
+import { prisma } from '../../../lib/db.js';
+import { requireAuth } from '../../../lib/auth.js';
 
-export default function handler(req, res) {
-  const user = requireAuth(req, res);
-  if (!user) return;
-
+export default async function handler(req, res) {
+  if (!requireAuth(req, res)) return;
   const { id } = req.query;
-  const teams = readJSON('teams.json');
-  const idx = teams.findIndex(t => t.id === id);
-
-  if (idx === -1) {
-    return res.status(404).json({ error: 'Echipa nu a fost găsită' });
-  }
-
   if (req.method === 'GET') {
-    return res.status(200).json(teams[idx]);
+    const team = await prisma.team.findUnique({ where: { id } });
+    if (!team) return res.status(404).json({ error: 'Echipa nu există' });
+    return res.json(team);
   }
-
   if (req.method === 'PUT') {
     const { name, phone, hourlyRate } = req.body;
-
-    if (!name || !name.trim()) {
-      return res.status(400).json({ error: 'Numele echipei este obligatoriu' });
-    }
-
-    teams[idx] = {
-      ...teams[idx],
-      name: name.trim(),
-      phone: phone || teams[idx].phone,
-      hourlyRate: Number(hourlyRate) || teams[idx].hourlyRate,
-    };
-
-    writeJSON('teams.json', teams);
-    return res.status(200).json(teams[idx]);
+    const team = await prisma.team.update({ where: { id }, data: { name, phone: phone || null, hourlyRate: Number(hourlyRate) || 100 } });
+    return res.json(team);
   }
-
   if (req.method === 'DELETE') {
-    teams.splice(idx, 1);
-    writeJSON('teams.json', teams);
-    return res.status(200).json({ message: 'Echipa a fost ștearsă' });
+    await prisma.team.delete({ where: { id } });
+    return res.json({ success: true });
   }
-
-  return res.status(405).json({ error: 'Metodă nepermisă' });
+  res.status(405).end();
 }

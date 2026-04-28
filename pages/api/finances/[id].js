@@ -1,28 +1,17 @@
-// pages/api/finances/[id].js
-import { readJSON, writeJSON } from '../../../lib/db';
-import { requireAuth } from '../../../lib/auth';
+import { prisma } from '../../../lib/db.js';
+import { requireAuth } from '../../../lib/auth.js';
 
-export default function handler(req, res) {
-  const user = requireAuth(req, res);
-  if (!user) return;
-
+export default async function handler(req, res) {
+  if (!requireAuth(req, res)) return;
   const { id } = req.query;
-  const finances = readJSON('finances.json');
-  const idx = finances.findIndex(f => f.id === id);
-
-  if (idx === -1) {
-    return res.status(404).json({ error: 'Tranzacția nu a fost găsită' });
-  }
-
   if (req.method === 'GET') {
-    return res.status(200).json(finances[idx]);
+    const f = await prisma.finance.findUnique({ where: { id } });
+    if (!f) return res.status(404).json({ error: 'Nu există' });
+    return res.json(f);
   }
-
   if (req.method === 'DELETE') {
-    finances.splice(idx, 1);
-    writeJSON('finances.json', finances);
-    return res.status(200).json({ message: 'Tranzacția a fost ștearsă' });
+    await prisma.finance.delete({ where: { id } });
+    return res.json({ success: true });
   }
-
-  return res.status(405).json({ error: 'Metodă nepermisă' });
+  res.status(405).end();
 }

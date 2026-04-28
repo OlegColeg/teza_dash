@@ -1,40 +1,22 @@
-// pages/api/reservations/[id].js
-import { readJSON, writeJSON } from '../../../lib/db';
-import { requireAuth } from '../../../lib/auth';
+import { prisma } from '../../../lib/db.js';
+import { requireAuth } from '../../../lib/auth.js';
 
-export default function handler(req, res) {
-  const user = requireAuth(req, res);
-  if (!user) return;
-
+export default async function handler(req, res) {
+  if (!requireAuth(req, res)) return;
   const { id } = req.query;
-  const reservations = readJSON('reservations.json');
-  const idx = reservations.findIndex(r => r.id === id);
-
-  if (idx === -1) {
-    return res.status(404).json({ error: 'Rezervarea nu a fost găsită' });
-  }
-
   if (req.method === 'GET') {
-    return res.status(200).json(reservations[idx]);
+    const r = await prisma.reservation.findUnique({ where: { id }, include: { team: true } });
+    if (!r) return res.status(404).json({ error: 'Nu există' });
+    return res.json(r);
   }
-
   if (req.method === 'DELETE') {
-    const reservation = reservations[idx];
-
-    // Restore team balance if deferred (undo the debt)
-    if (reservation.paymentStatus === 'deferred') {
-      const teams = readJSON('teams.json');
-      const teamIdx = teams.findIndex(t => t.id === reservation.teamId);
-      if (teamIdx !== -1) {
-        teams[teamIdx].balance = (teams[teamIdx].balance || 0) + reservation.totalCost;
-        writeJSON('teams.json', teams);
-      }
+    const r = await prisma.reservation.findUnique({ where: { id } });
+    if (!r) return res.status(404).json({ error: 'Nu există' });
+    if (r.status === 'deferred') {
+      await prisma.team.update({ where: { id: r.teamId }, data: { balance: { increment: r.cost } } });
     }
-
-    reservations.splice(idx, 1);
-    writeJSON('reservations.json', reservations);
-    return res.status(200).json({ message: 'Rezervarea a fost ștearsă' });
+    await prisma.reservation.delete({ where: { id } });
+    return res.json({ success: true });
   }
-
-  return res.status(405).json({ error: 'Metodă nepermisă' });
+  res.status(405).end();
 }

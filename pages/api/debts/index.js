@@ -1,23 +1,12 @@
-// pages/api/debts/index.js - Get all team debts and make payments
-import { readJSON, writeJSON } from '../../../lib/db';
-import { requireAuth } from '../../../lib/auth';
-import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '../../../lib/db.js';
+import { requireAuth } from '../../../lib/auth.js';
 
-export default function handler(req, res) {
-  const user = requireAuth(req, res);
-  if (!user) return;
-
+export default async function handler(req, res) {
+  if (!requireAuth(req, res)) return;
   if (req.method === 'GET') {
-    const teams = readJSON('teams.json');
-    // Only teams that have negative balance (owe money)
-    const debtors = teams
-      .filter(t => t.balance < 0)
-      .map(t => ({ ...t, debt: Math.abs(t.balance) }));
-
-    const totalDebt = debtors.reduce((s, t) => s + t.debt, 0);
-
-    return res.status(200).json({ debtors, totalDebt });
+    const debtors = await prisma.team.findMany({ where: { balance: { lt: 0 } }, orderBy: { balance: 'asc' } });
+    const totalDebt = debtors.reduce((s, t) => s + Math.abs(t.balance), 0);
+    return res.json({ debtors, totalDebt });
   }
-
-  return res.status(405).json({ error: 'Metodă nepermisă' });
+  res.status(405).end();
 }
