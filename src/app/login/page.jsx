@@ -43,7 +43,7 @@ export default function LoginPage() {
       }
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      router.push("/");
+      window.location.href = "/";
     } catch {
       setLoginError("Eroare de rețea. Încearcă din nou.");
     }

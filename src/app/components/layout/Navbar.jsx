@@ -245,7 +245,7 @@ export default function Navbar({ toggleSidebar, sidebarVisible, theme, toggleThe
             >
               <div className="w-7 h-7 rounded-full overflow-hidden bg-teal-600 flex items-center justify-center flex-shrink-0">
                 <img
-                  src={typeof window !== 'undefined' ? (localStorage.getItem('profilePhoto') || '/image/olegAdmin.jpg') : '/image/olegAdmin.jpg'}
+                  src={typeof window !== 'undefined' && user?.id ? (localStorage.getItem(`profilePhoto_${user.id}`) || '/image/olegAdmin.jpg') : '/image/olegAdmin.jpg'}
                   alt="Profile"
                   className="w-full h-full object-cover"
                   onError={e => { e.currentTarget.src = '/image/olegAdmin.jpg'; }}

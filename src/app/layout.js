@@ -32,16 +32,37 @@ export default function RootLayout({ children }) {
   // Verifică autentificarea
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    if (token && userData) {
-      try {
-        setUser(JSON.parse(userData));
-        setIsLoggedIn(true);
-      } catch {
-        localStorage.removeItem('user');
-      }
+    if (!token) {
+      setAuthChecked(true);
+      return;
     }
-    setAuthChecked(true);
+    // Validează token-ul pe server — dacă e expirat/invalid, delogăm
+    fetch('/api/auth/verify', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.valid && data.user) {
+          setUser(data.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setIsLoggedIn(true);
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('profilePhoto');
+        }
+      })
+      .catch(() => {
+        // Rețea offline — folosim datele locale ca fallback
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          try {
+            setUser(JSON.parse(userData));
+            setIsLoggedIn(true);
+          } catch {}
+        }
+      })
+      .finally(() => setAuthChecked(true));
   }, []);
 
   // Redirect la login dacă nu e autentificat
@@ -72,6 +93,8 @@ export default function RootLayout({ children }) {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Nota: profilePhoto este stocat per user ID (profilePhoto_${id}), nu se șterge la logout
+    // pentru că este asociat explicit unui user și nu va afecta alți utilizatori
     setUser(null);
     setIsLoggedIn(false);
     fetch('/api/auth/logout', { method: 'POST' });

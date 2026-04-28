@@ -5,24 +5,34 @@ import React, { useState, useRef, useEffect } from "react";
 import { Camera, Save, Download } from "lucide-react";
 
 export default function SimpleProfilePage() {
-  const [profileData, setProfileData] = useState({
-    firstName: "Oală",
-    lastName: "Oleg",
-    email: "ooale47@gmail.com",
-    phone: "+373 604 35 197",
-    city: "Bălți",
-    country: "Moldova",
-  });
-  const [formData, setFormData] = useState({ ...profileData });
+  const EMPTY_PROFILE = { firstName: '', lastName: '', email: '', phone: '', city: '', country: '' };
+  const [currentUser, setCurrentUser] = useState(null);
+  const [profileData, setProfileData] = useState(EMPTY_PROFILE);
+  const [formData, setFormData] = useState(EMPTY_PROFILE);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [saved, setSaved] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const savedPhoto = localStorage.getItem('profilePhoto');
+    // Citim utilizatorul curent
+    let userId = null;
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      userId = u?.id || null;
+      setCurrentUser(u);
+    } catch {}
+
+    if (!userId) return;
+
+    // Chei unice per utilizator
+    const photoKey = `profilePhoto_${userId}`;
+    const dataKey = `profileData_${userId}`;
+
+    const savedPhoto = localStorage.getItem(photoKey);
     if (savedPhoto) setPhotoPreview(savedPhoto);
-    const savedProfile = localStorage.getItem('profileData');
+
+    const savedProfile = localStorage.getItem(dataKey);
     if (savedProfile) {
       try { const p = JSON.parse(savedProfile); setProfileData(p); setFormData(p); } catch {}
     }
@@ -36,7 +46,10 @@ export default function SimpleProfilePage() {
     reader.onload = (ev) => {
       const dataUrl = ev.target.result;
       setPhotoPreview(dataUrl);
-      localStorage.setItem('profilePhoto', dataUrl);
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u?.id) localStorage.setItem(`profilePhoto_${u.id}`, dataUrl);
+      } catch {}
     };
     reader.readAsDataURL(file);
   };
@@ -49,7 +62,10 @@ export default function SimpleProfilePage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setProfileData({ ...formData });
-    localStorage.setItem('profileData', JSON.stringify(formData));
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      if (u?.id) localStorage.setItem(`profileData_${u.id}`, JSON.stringify(formData));
+    } catch {}
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
