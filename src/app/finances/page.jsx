@@ -67,6 +67,9 @@ export default function FinancesPage() {
   const [loanError, setLoanError] = useState('');
   const [savingLoan, setSavingLoan] = useState(false);
   const [deletingLoanId, setDeletingLoanId] = useState(null);
+  const [selectedLoans, setSelectedLoans] = useState(new Set());
+  const [deletingLoansMulti, setDeletingLoansMulti] = useState(false);
+  const [loanSearch, setLoanSearch] = useState('');
   const [showLoanImport, setShowLoanImport] = useState(false);
   const [loanImportResult, setLoanImportResult] = useState(null);
   const [importingLoan, setImportingLoan] = useState(false);
@@ -201,7 +204,32 @@ export default function FinancesPage() {
     setDeletingLoanId(id);
     await fetch(`/api/loans/${id}`, { method: 'DELETE', headers: getHeaders() });
     setDeletingLoanId(null);
+    setSelectedLoans(prev => { const n = new Set(prev); n.delete(id); return n; });
     loadLoans();
+  }
+
+  async function handleDeleteSelectedLoans() {
+    if (selectedLoans.size === 0) return;
+    if (!confirm(`Ștergi ${selectedLoans.size} împrumut${selectedLoans.size > 1 ? 'uri' : ''} selectat${selectedLoans.size > 1 ? 'e' : ''}?`)) return;
+    setDeletingLoansMulti(true);
+    await Promise.all([...selectedLoans].map(id =>
+      fetch(`/api/loans/${id}`, { method: 'DELETE', headers: getHeaders() })
+    ));
+    setSelectedLoans(new Set());
+    setDeletingLoansMulti(false);
+    loadLoans();
+  }
+
+  function toggleLoan(id) {
+    setSelectedLoans(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  function toggleAllLoans(visibleIds) {
+    if (visibleIds.every(id => selectedLoans.has(id)) && visibleIds.length > 0) {
+      setSelectedLoans(new Set());
+    } else {
+      setSelectedLoans(new Set(visibleIds));
+    }
   }
 
   async function handleLoanImport(e) {
@@ -720,6 +748,20 @@ export default function FinancesPage() {
           </div>
         </div>
 
+        {/* Search bar */}
+        <div className="relative mb-4">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            value={loanSearch}
+            onChange={e => setLoanSearch(e.target.value)}
+            placeholder="Caută după denumire sau obiecții..."
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-amber-500"
+          />
+          {loanSearch && (
+            <button onClick={() => setLoanSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"><X size={14} /></button>
+          )}
+        </div>
+
         {/* KPI cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
           <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
@@ -737,75 +779,116 @@ export default function FinancesPage() {
         </div>
 
         {/* Loans table */}
-        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-          {loansLoading ? (
-            <div className="p-8 text-center text-gray-500 text-sm">Se încarcă împrumuturile...</div>
-          ) : loans.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 text-sm">Nu există împrumuturi înregistrate.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-700 bg-gray-750">
-                    <th className="text-left px-4 py-3 text-amber-400 font-semibold">Denumire</th>
-                    <th className="text-left px-4 py-3 text-amber-400 font-semibold">Data</th>
-                    <th className="text-right px-4 py-3 text-amber-400 font-semibold">Sumă</th>
-                    <th className="text-left px-4 py-3 text-amber-400 font-semibold hidden md:table-cell">Obiecții</th>
-                    <th className="text-right px-4 py-3 text-amber-400 font-semibold">Restituit</th>
-                    <th className="text-right px-4 py-3 text-amber-400 font-semibold">Mai Trebuie</th>
-                    <th className="px-4 py-3 text-amber-400 font-semibold text-right">Acțiuni</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loans.map((loan, idx) => {
-                    const ramas = Math.max(0, loan.amount - loan.restituit);
-                    return (
-                      <tr key={loan.id} className={`border-b border-gray-700/50 hover:bg-gray-750/60 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-800/50'}`}>
-                        <td className="px-4 py-3 font-medium text-gray-100">{loan.denumire}</td>
-                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{new Date(loan.date + 'T00:00:00').toLocaleDateString('ro-MD', { day: '2-digit', month: 'long', year: 'numeric' })}</td>
-                        <td className="px-4 py-3 text-right font-mono text-amber-300">{loan.amount.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
-                        <td className="px-4 py-3 text-gray-400 text-xs hidden md:table-cell max-w-xs truncate">{loan.notes || '—'}</td>
-                        <td className="px-4 py-3 text-right font-mono text-green-400">{loan.restituit > 0 ? `${loan.restituit.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L` : '—'}</td>
-                        <td className="px-4 py-3 text-right font-mono font-bold">
-                          {ramas > 0 ? <span className="text-red-400">{ramas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</span> : <span className="text-green-500 text-xs">✓ Achitat</span>}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => openLoanModal(loan)}
-                              className="px-2 py-1 bg-amber-700/40 hover:bg-amber-600/50 text-amber-300 rounded text-xs transition-colors"
-                              title="Editează / actualizează restituit"
-                            >
-                              Editează
-                            </button>
-                            <button
-                              onClick={() => handleDeleteLoan(loan.id)}
-                              disabled={deletingLoanId === loan.id}
-                              className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
-                              title="Șterge"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
+        {(() => {
+          const s = loanSearch.toLowerCase();
+          const filteredLoans = loans.filter(l =>
+            !s || l.denumire.toLowerCase().includes(s) || (l.notes || '').toLowerCase().includes(s)
+          );
+          const visibleIds = filteredLoans.map(l => l.id);
+          const allChecked = visibleIds.length > 0 && visibleIds.every(id => selectedLoans.has(id));
+          return (
+            <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+              {/* Bulk delete toolbar */}
+              {selectedLoans.size > 0 && (
+                <div className="flex items-center justify-between px-4 py-2 bg-red-900/20 border-b border-red-700/40">
+                  <span className="text-sm text-red-300">{selectedLoans.size} selectat{selectedLoans.size > 1 ? 'e' : ''}</span>
+                  <button
+                    onClick={handleDeleteSelectedLoans}
+                    disabled={deletingLoansMulti}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white rounded text-xs font-medium transition-colors"
+                  >
+                    <Trash2 size={13} /> {deletingLoansMulti ? 'Se șterge...' : 'Șterge selectate'}
+                  </button>
+                </div>
+              )}
+              {loansLoading ? (
+                <div className="p-8 text-center text-gray-500 text-sm">Se încarcă împrumuturile...</div>
+              ) : filteredLoans.length === 0 ? (
+                <div className="p-8 text-center text-gray-500 text-sm">{loanSearch ? 'Niciun rezultat pentru căutarea ta.' : 'Nu există împrumuturi înregistrate.'}</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-700 bg-gray-750">
+                        <th className="px-3 py-3 w-8">
+                          <input
+                            type="checkbox"
+                            checked={allChecked}
+                            onChange={() => toggleAllLoans(visibleIds)}
+                            className="accent-amber-500 cursor-pointer"
+                          />
+                        </th>
+                        <th className="text-left px-4 py-3 text-amber-400 font-semibold">Denumire</th>
+                        <th className="text-left px-4 py-3 text-amber-400 font-semibold">Data</th>
+                        <th className="text-right px-4 py-3 text-amber-400 font-semibold">Sumă</th>
+                        <th className="text-left px-4 py-3 text-amber-400 font-semibold hidden md:table-cell">Obiecții</th>
+                        <th className="text-right px-4 py-3 text-amber-400 font-semibold">Restituit</th>
+                        <th className="text-right px-4 py-3 text-amber-400 font-semibold">Mai Trebuie</th>
+                        <th className="px-4 py-3 text-amber-400 font-semibold text-right">Acțiuni</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-amber-700/50 bg-gray-750">
-                    <td colSpan={2} className="px-4 py-3 font-semibold text-amber-300 text-sm">TOTAL</td>
-                    <td className="px-4 py-3 text-right font-bold font-mono text-amber-300">{loansSummary.totalAmount.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
-                    <td className="hidden md:table-cell" />
-                    <td className="px-4 py-3 text-right font-bold font-mono text-green-400">{loansSummary.totalRestituit.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
-                    <td className="px-4 py-3 text-right font-bold font-mono text-red-400">{loansSummary.totalRamas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
-                    <td />
-                  </tr>
-                </tfoot>
-              </table>
+                    </thead>
+                    <tbody>
+                      {filteredLoans.map((loan, idx) => {
+                        const ramas = Math.max(0, loan.amount - loan.restituit);
+                        const isChecked = selectedLoans.has(loan.id);
+                        return (
+                          <tr key={loan.id} className={`border-b border-gray-700/50 hover:bg-gray-750/60 transition-colors ${isChecked ? 'bg-amber-900/10' : idx % 2 !== 0 ? 'bg-gray-800/50' : ''}`}>
+                            <td className="px-3 py-3 w-8">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleLoan(loan.id)}
+                                className="accent-amber-500 cursor-pointer"
+                              />
+                            </td>
+                            <td className="px-4 py-3 font-medium text-gray-100">{loan.denumire}</td>
+                            <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{new Date(loan.date + 'T00:00:00').toLocaleDateString('ro-MD', { day: '2-digit', month: 'long', year: 'numeric' })}</td>
+                            <td className="px-4 py-3 text-right font-mono text-amber-300">{loan.amount.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
+                            <td className="px-4 py-3 text-gray-400 text-xs hidden md:table-cell max-w-xs truncate">{loan.notes || '—'}</td>
+                            <td className="px-4 py-3 text-right font-mono text-green-400">{loan.restituit > 0 ? `${loan.restituit.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L` : '—'}</td>
+                            <td className="px-4 py-3 text-right font-mono font-bold">
+                              {ramas > 0 ? <span className="text-red-400">{ramas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</span> : <span className="text-green-500 text-xs">✓ Achitat</span>}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => openLoanModal(loan)}
+                                  className="px-2 py-1 bg-amber-700/40 hover:bg-amber-600/50 text-amber-300 rounded text-xs transition-colors"
+                                  title="Editează / actualizează restituit"
+                                >
+                                  Editează
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteLoan(loan.id)}
+                                  disabled={deletingLoanId === loan.id}
+                                  className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
+                                  title="Șterge"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-amber-700/50 bg-gray-750">
+                        <td />
+                        <td colSpan={2} className="px-4 py-3 font-semibold text-amber-300 text-sm">TOTAL</td>
+                        <td className="px-4 py-3 text-right font-bold font-mono text-amber-300">{loansSummary.totalAmount.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
+                        <td className="hidden md:table-cell" />
+                        <td className="px-4 py-3 text-right font-bold font-mono text-green-400">{loansSummary.totalRestituit.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
+                        <td className="px-4 py-3 text-right font-bold font-mono text-red-400">{loansSummary.totalRamas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
       </div>
 
       {/* ── Add / Edit Loan modal ──────────────────────────────────────────── */}
