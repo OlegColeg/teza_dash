@@ -696,14 +696,13 @@ export default function FinancesPage() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* DATORII BLL — Împrumuturi acordate Bisericii Lumina Lumii            */}
+      {/* DATORII / ÎMPRUMUTURI                                                */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       <div className="border-t-2 border-amber-700/50 pt-6">
         {/* Section header */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <h2 className="text-xl font-bold text-amber-400">DATORII BLL</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Împrumuturi acordate — Biserica Lumina Lumii</p>
+            <h2 className="text-xl font-bold text-amber-400">DATORII / ÎMPRUMUTURI</h2>
           </div>
           <div className="flex gap-2">
             <button
@@ -814,7 +813,7 @@ export default function FinancesPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-amber-700/50">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
-              <h2 className="text-lg font-bold text-amber-400">{editingLoan ? 'Editează Împrumut' : 'Împrumut Nou — BLL'}</h2>
+              <h2 className="text-lg font-bold text-amber-400">{editingLoan ? 'Editează Împrumut' : 'Împrumut Nou'}</h2>
               <button onClick={() => setShowLoanModal(false)} className="p-1 hover:bg-gray-700 rounded"><X size={18} className="text-gray-400" /></button>
             </div>
             <div className="p-5 space-y-4">
@@ -890,29 +889,29 @@ export default function FinancesPage() {
         </div>
       )}
 
-      {/* ── Import CSV Loans modal ─────────────────────────────────────────── */}
+      {/* ── Import CSV/TXT Loans modal ────────────────────────────────────── */}
       {showLoanImport && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg border border-amber-700/50">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
               <div>
-                <h2 className="text-lg font-bold text-amber-400">Import CSV — Datorii BLL</h2>
+                <h2 className="text-lg font-bold text-amber-400">Import CSV / TXT — Datorii</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Format: denumire, data (YYYY-MM-DD), suma, obiectii, restituit</p>
               </div>
               <button onClick={() => setShowLoanImport(false)} className="p-1 hover:bg-gray-700 rounded"><X size={18} className="text-gray-400" /></button>
             </div>
             <div className="p-5 space-y-4">
               <div className="bg-gray-750 rounded-lg p-3 border border-gray-700 text-xs font-mono text-gray-400 space-y-1">
-                <p className="text-gray-300 font-semibold mb-1">Exemplu CSV:</p>
+                <p className="text-gray-300 font-semibold mb-1">Exemplu CSV / TXT (valori separate prin virgulă):</p>
                 <p>denumire,data,suma,obiectii,restituit</p>
-                <p>BLL Budca goroh,2025-11-20,250,cec 300,250</p>
-                <p>BLL plicuri hartie,2026-04-09,1070,,0</p>
+                <p>Budca goroh,2025-11-20,250,cec 300,250</p>
+                <p>plicuri hartie,2026-04-09,1070,,0</p>
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-2">Selectează fișier CSV</label>
+                <label className="block text-xs text-gray-400 mb-2">Selectează fișier CSV sau TXT</label>
                 <input
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".csv,.txt,text/csv,text/plain"
                   ref={loanImportFileRef}
                   onChange={handleLoanImport}
                   className="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-amber-700 file:text-white hover:file:bg-amber-600 cursor-pointer"
