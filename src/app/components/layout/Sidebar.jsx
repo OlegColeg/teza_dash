@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, Users, Calendar, BarChart2, PieChart, TrendingUp, Map, DollarSign, AlertTriangle, LogOut, Calculator, Briefcase } from 'lucide-react';
+import { Home, Users, Calendar, BarChart2, PieChart, TrendingUp, Map, DollarSign, AlertTriangle, LogOut, Calculator, Briefcase, FileText } from 'lucide-react';
 
 const Sidebar = ({ sidebarVisible, toggleSidebar, user, onLogout }) => {
   const [expanded, setExpanded] = useState({
@@ -97,6 +97,10 @@ const Sidebar = ({ sidebarVisible, toggleSidebar, user, onLogout }) => {
               <Link href="/cash-calculator" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <Calculator size={20} className="mr-3" />
                 <span>Calculator Bancnote</span>
+              </Link>
+              <Link href="/raport" className="flex items-center px-3 py-2 text-amber-400 hover:bg-amber-900/30 rounded-md font-medium">
+                <FileText size={20} className="mr-3" />
+                <span>Raport PDF</span>
               </Link>
             </div>
           </div>

@@ -318,6 +318,10 @@ export default function FinancesPage() {
             className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2 text-sm">
             <Upload size={16} /> IMPORT CSV
           </button>
+          <a href="/raport"
+            className="bg-amber-700 hover:bg-amber-600 text-white px-4 py-2 rounded flex items-center gap-2 text-sm">
+            <FileText size={16} /> RAPORT PDF
+          </a>
         </div>
       </div>
 
