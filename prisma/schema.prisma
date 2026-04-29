@@ -81,7 +81,20 @@ model Employee {
 }
 
 // ─────────────────────────────────────────────
-// Entitate 6: Calculator Bancnote (singleton)
+// Entitate 7: Împrumuturi BLL (Cheltuieli restituibile)
+// ─────────────────────────────────────────────
+model Loan {
+  id        String   @id @default(uuid())
+  denumire  String
+  date      String   // YYYY-MM-DD
+  amount    Float
+  notes     String?
+  restituit Float    @default(0)
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────
+// Entitate 8: Calculator Bancnote (singleton)
 // ─────────────────────────────────────────────
 model CashCalculator {
   id        String   @id @default("singleton")

@@ -4,19 +4,36 @@ import { requireAuth } from '../../../lib/auth.js';
 export default async function handler(req, res) {
   if (!requireAuth(req, res)) return;
   if (req.method === 'GET') {
-    const [teams, incomeStats] = await Promise.all([
+    const [teams, allIncome] = await Promise.all([
       prisma.team.findMany({ orderBy: { name: 'asc' } }),
-      prisma.finance.groupBy({
-        by: ['teamId'],
-        where: { type: 'income', teamId: { not: null } },
-        _sum: { amount: true },
-        _count: { _all: true },
+      prisma.finance.findMany({
+        where: { type: 'income' },
+        select: { teamId: true, client: true, amount: true },
       }),
     ]);
+    // Build stats: match by teamId first, then by client name for records without teamId
     const statsMap = {};
-    incomeStats.forEach(s => {
-      statsMap[s.teamId] = { totalIncome: s._sum.amount || 0, gameCount: s._count._all };
+    teams.forEach(t => {
+      statsMap[t.id] = { totalIncome: 0, gameCount: 0, nameLower: t.name.toLowerCase().trim() };
     });
+    // Build reverse lookup: name -> id
+    const nameToId = {};
+    teams.forEach(t => { nameToId[t.name.toLowerCase().trim()] = t.id; });
+
+    allIncome.forEach(r => {
+      if (r.teamId && statsMap[r.teamId]) {
+        statsMap[r.teamId].totalIncome += r.amount;
+        statsMap[r.teamId].gameCount += 1;
+      } else if (!r.teamId && r.client) {
+        const key = r.client.toLowerCase().trim();
+        const id = nameToId[key];
+        if (id) {
+          statsMap[id].totalIncome += r.amount;
+          statsMap[id].gameCount += 1;
+        }
+      }
+    });
+
     const result = teams.map(t => ({
       ...t,
       totalIncome: statsMap[t.id]?.totalIncome || 0,

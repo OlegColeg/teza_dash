@@ -57,6 +57,21 @@ export default function FinancesPage() {
   const [filterAmtMax, setFilterAmtMax] = useState('');
   const [showAdvFilters, setShowAdvFilters] = useState(false);
 
+  // ── Datorii BLL state ──────────────────────────────────────────────────────
+  const [loans, setLoans] = useState([]);
+  const [loansSummary, setLoansSummary] = useState({ totalAmount: 0, totalRestituit: 0, totalRamas: 0 });
+  const [loansLoading, setLoansLoading] = useState(true);
+  const [showLoanModal, setShowLoanModal] = useState(false);
+  const [editingLoan, setEditingLoan] = useState(null); // null = new, object = edit
+  const [loanForm, setLoanForm] = useState({ denumire: '', date: new Date().toISOString().split('T')[0], amount: '', notes: '', restituit: '0' });
+  const [loanError, setLoanError] = useState('');
+  const [savingLoan, setSavingLoan] = useState(false);
+  const [deletingLoanId, setDeletingLoanId] = useState(null);
+  const [showLoanImport, setShowLoanImport] = useState(false);
+  const [loanImportResult, setLoanImportResult] = useState(null);
+  const [importingLoan, setImportingLoan] = useState(false);
+  const loanImportFileRef = React.useRef(null);
+
   function getHeaders() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
     return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
@@ -71,7 +86,15 @@ export default function FinancesPage() {
       .catch(() => setLoading(false));
   }
 
-  useEffect(() => { load(); }, []);
+  function loadLoans() {
+    setLoansLoading(true);
+    fetch('/api/loans', { headers: getHeaders() })
+      .then(r => r.json())
+      .then(d => { setLoans(d.loans || []); setLoansSummary(d.summary || { totalAmount: 0, totalRestituit: 0, totalRamas: 0 }); setLoansLoading(false); })
+      .catch(() => setLoansLoading(false));
+  }
+
+  useEffect(() => { load(); loadLoans(); }, []);
 
   useEffect(() => {
     fetch('/api/teams', { headers: getHeaders() })
@@ -143,6 +166,65 @@ export default function FinancesPage() {
     setSelected(new Set());
     setDeletingMulti(false);
     load();
+  }
+
+  // ── Datorii BLL handlers ───────────────────────────────────────────────────
+  function openLoanModal(loan = null) {
+    setEditingLoan(loan);
+    setLoanForm(loan
+      ? { denumire: loan.denumire, date: loan.date, amount: String(loan.amount), notes: loan.notes || '', restituit: String(loan.restituit) }
+      : { denumire: '', date: new Date().toISOString().split('T')[0], amount: '', notes: '', restituit: '0' }
+    );
+    setLoanError('');
+    setShowLoanModal(true);
+  }
+
+  async function handleSaveLoan() {
+    if (!loanForm.denumire.trim()) { setLoanError('Denumirea este obligatorie'); return; }
+    if (!loanForm.date) { setLoanError('Data este obligatorie'); return; }
+    if (!loanForm.amount || Number(loanForm.amount) <= 0) { setLoanError('Suma trebuie să fie pozitivă'); return; }
+    setSavingLoan(true); setLoanError('');
+    try {
+      const url = editingLoan ? `/api/loans/${editingLoan.id}` : '/api/loans';
+      const method = editingLoan ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: getHeaders(), body: JSON.stringify(loanForm) });
+      const d = await res.json();
+      if (!res.ok) { setLoanError(d.error || 'Eroare'); setSavingLoan(false); return; }
+      setShowLoanModal(false);
+      loadLoans();
+    } catch { setLoanError('Eroare de rețea'); }
+    setSavingLoan(false);
+  }
+
+  async function handleDeleteLoan(id) {
+    if (!confirm('Ștergi acest împrumut?')) return;
+    setDeletingLoanId(id);
+    await fetch(`/api/loans/${id}`, { method: 'DELETE', headers: getHeaders() });
+    setDeletingLoanId(null);
+    loadLoans();
+  }
+
+  async function handleLoanImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportingLoan(true); setLoanImportResult(null);
+    const text = await file.text();
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+    const rows = lines.slice(1).map(line => {
+      const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
+      return obj;
+    }).filter(r => Object.values(r).some(Boolean));
+    try {
+      const res = await fetch('/api/loans/import', { method: 'POST', headers: getHeaders(), body: JSON.stringify({ rows }) });
+      const d = await res.json();
+      setLoanImportResult(d);
+      if (!d.error) loadLoans();
+    } catch { setLoanImportResult({ error: 'Eroare de rețea' }); }
+    setImportingLoan(false);
+    if (loanImportFileRef.current) loanImportFileRef.current.value = '';
   }
 
   function toggleSelect(id) {
@@ -608,6 +690,254 @@ export default function FinancesPage() {
             </div>
             <div className="flex justify-end px-5 py-4 border-t border-gray-700">
               <button onClick={() => setShowImport(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm">Închide</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* DATORII BLL — Împrumuturi acordate Bisericii Lumina Lumii            */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      <div className="border-t-2 border-amber-700/50 pt-6">
+        {/* Section header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-amber-400">DATORII BLL</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Împrumuturi acordate — Biserica Lumina Lumii</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowLoanImport(true); setLoanImportResult(null); }}
+              className="flex items-center gap-2 px-3 py-2 bg-amber-900/40 hover:bg-amber-800/50 border border-amber-700/50 text-amber-300 rounded-lg text-sm transition-colors"
+            >
+              <Upload size={14} /> Import CSV
+            </button>
+            <button
+              onClick={() => openLoanModal()}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Plus size={16} /> Adaugă Împrumut
+            </button>
+          </div>
+        </div>
+
+        {/* KPI cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+          <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+            <p className="text-xs text-gray-400 mb-1">Total împrumutat</p>
+            <p className="text-2xl font-bold text-amber-400">{loansSummary.totalAmount.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</p>
+          </div>
+          <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+            <p className="text-xs text-gray-400 mb-1">Total restituit</p>
+            <p className="text-2xl font-bold text-green-400">{loansSummary.totalRestituit.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</p>
+          </div>
+          <div className="bg-gray-800 rounded-xl p-4 border border-amber-700/50">
+            <p className="text-xs text-gray-400 mb-1">Rămâne de restituit</p>
+            <p className="text-2xl font-bold text-red-400">{loansSummary.totalRamas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</p>
+          </div>
+        </div>
+
+        {/* Loans table */}
+        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+          {loansLoading ? (
+            <div className="p-8 text-center text-gray-500 text-sm">Se încarcă împrumuturile...</div>
+          ) : loans.length === 0 ? (
+            <div className="p-8 text-center text-gray-500 text-sm">Nu există împrumuturi înregistrate.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-700 bg-gray-750">
+                    <th className="text-left px-4 py-3 text-amber-400 font-semibold">Denumire</th>
+                    <th className="text-left px-4 py-3 text-amber-400 font-semibold">Data</th>
+                    <th className="text-right px-4 py-3 text-amber-400 font-semibold">Sumă</th>
+                    <th className="text-left px-4 py-3 text-amber-400 font-semibold hidden md:table-cell">Obiecții</th>
+                    <th className="text-right px-4 py-3 text-amber-400 font-semibold">Restituit</th>
+                    <th className="text-right px-4 py-3 text-amber-400 font-semibold">Mai Trebuie</th>
+                    <th className="px-4 py-3 text-amber-400 font-semibold text-right">Acțiuni</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loans.map((loan, idx) => {
+                    const ramas = Math.max(0, loan.amount - loan.restituit);
+                    return (
+                      <tr key={loan.id} className={`border-b border-gray-700/50 hover:bg-gray-750/60 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-800/50'}`}>
+                        <td className="px-4 py-3 font-medium text-gray-100">{loan.denumire}</td>
+                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{new Date(loan.date + 'T00:00:00').toLocaleDateString('ro-MD', { day: '2-digit', month: 'long', year: 'numeric' })}</td>
+                        <td className="px-4 py-3 text-right font-mono text-amber-300">{loan.amount.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
+                        <td className="px-4 py-3 text-gray-400 text-xs hidden md:table-cell max-w-xs truncate">{loan.notes || '—'}</td>
+                        <td className="px-4 py-3 text-right font-mono text-green-400">{loan.restituit > 0 ? `${loan.restituit.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L` : '—'}</td>
+                        <td className="px-4 py-3 text-right font-mono font-bold">
+                          {ramas > 0 ? <span className="text-red-400">{ramas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</span> : <span className="text-green-500 text-xs">✓ Achitat</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => openLoanModal(loan)}
+                              className="px-2 py-1 bg-amber-700/40 hover:bg-amber-600/50 text-amber-300 rounded text-xs transition-colors"
+                              title="Editează / actualizează restituit"
+                            >
+                              Editează
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLoan(loan.id)}
+                              disabled={deletingLoanId === loan.id}
+                              className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
+                              title="Șterge"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-amber-700/50 bg-gray-750">
+                    <td colSpan={2} className="px-4 py-3 font-semibold text-amber-300 text-sm">TOTAL</td>
+                    <td className="px-4 py-3 text-right font-bold font-mono text-amber-300">{loansSummary.totalAmount.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
+                    <td className="hidden md:table-cell" />
+                    <td className="px-4 py-3 text-right font-bold font-mono text-green-400">{loansSummary.totalRestituit.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
+                    <td className="px-4 py-3 text-right font-bold font-mono text-red-400">{loansSummary.totalRamas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Add / Edit Loan modal ──────────────────────────────────────────── */}
+      {showLoanModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-amber-700/50">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
+              <h2 className="text-lg font-bold text-amber-400">{editingLoan ? 'Editează Împrumut' : 'Împrumut Nou — BLL'}</h2>
+              <button onClick={() => setShowLoanModal(false)} className="p-1 hover:bg-gray-700 rounded"><X size={18} className="text-gray-400" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              {loanError && <div className="bg-red-900/30 border border-red-700 text-red-300 rounded-lg px-3 py-2 text-sm">{loanError}</div>}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Denumire *</label>
+                <input
+                  value={loanForm.denumire}
+                  onChange={e => setLoanForm(p => ({ ...p, denumire: e.target.value }))}
+                  placeholder="ex. BLL Budca goroh Borsh"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Data *</label>
+                  <input
+                    type="date"
+                    value={loanForm.date}
+                    onChange={e => setLoanForm(p => ({ ...p, date: e.target.value }))}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Suma (MDL) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={loanForm.amount}
+                    onChange={e => setLoanForm(p => ({ ...p, amount: e.target.value }))}
+                    placeholder="0.00"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Obiecții / Comentarii</label>
+                <input
+                  value={loanForm.notes}
+                  onChange={e => setLoanForm(p => ({ ...p, notes: e.target.value }))}
+                  placeholder="ex. cec 300,50 moica 100era"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Restituit (MDL)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={loanForm.restituit}
+                  onChange={e => setLoanForm(p => ({ ...p, restituit: e.target.value }))}
+                  placeholder="0.00"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500"
+                />
+                {loanForm.amount && Number(loanForm.restituit) > 0 && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Rămâne: <span className={Number(loanForm.amount) - Number(loanForm.restituit) > 0 ? 'text-red-400' : 'text-green-400'}>
+                      {Math.max(0, Number(loanForm.amount) - Number(loanForm.restituit)).toLocaleString('ro-MD', { minimumFractionDigits: 2 })} L
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-700">
+              <button onClick={() => setShowLoanModal(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm">Anulează</button>
+              <button onClick={handleSaveLoan} disabled={savingLoan} className="flex items-center gap-2 px-5 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium">
+                {savingLoan ? 'Se salvează...' : <><Check size={14} /> Salvează</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Import CSV Loans modal ─────────────────────────────────────────── */}
+      {showLoanImport && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg border border-amber-700/50">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
+              <div>
+                <h2 className="text-lg font-bold text-amber-400">Import CSV — Datorii BLL</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Format: denumire, data (YYYY-MM-DD), suma, obiectii, restituit</p>
+              </div>
+              <button onClick={() => setShowLoanImport(false)} className="p-1 hover:bg-gray-700 rounded"><X size={18} className="text-gray-400" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="bg-gray-750 rounded-lg p-3 border border-gray-700 text-xs font-mono text-gray-400 space-y-1">
+                <p className="text-gray-300 font-semibold mb-1">Exemplu CSV:</p>
+                <p>denumire,data,suma,obiectii,restituit</p>
+                <p>BLL Budca goroh,2025-11-20,250,cec 300,250</p>
+                <p>BLL plicuri hartie,2026-04-09,1070,,0</p>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-2">Selectează fișier CSV</label>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  ref={loanImportFileRef}
+                  onChange={handleLoanImport}
+                  className="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-amber-700 file:text-white hover:file:bg-amber-600 cursor-pointer"
+                />
+              </div>
+              {importingLoan && <div className="text-center text-gray-400 text-sm py-2">Se importă datele...</div>}
+              {loanImportResult && !loanImportResult.error && (
+                <div className="space-y-2">
+                  <div className="bg-green-900/30 border border-green-700 rounded-lg px-4 py-3 text-sm">
+                    <p className="text-green-300 font-medium">✅ Importate cu succes: <strong>{loanImportResult.created}</strong> înregistrări</p>
+                  </div>
+                  {loanImportResult.errors?.length > 0 && (
+                    <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg px-4 py-3 text-sm">
+                      <p className="text-yellow-300 font-medium flex items-center gap-1 mb-2"><AlertCircle size={14} /> Erori ({loanImportResult.errors.length}):</p>
+                      <ul className="space-y-1">{loanImportResult.errors.map((e, i) => <li key={i} className="text-yellow-400 text-xs">{e}</li>)}</ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              {loanImportResult?.error && (
+                <div className="bg-red-900/30 border border-red-700 rounded-lg px-4 py-3 text-sm text-red-300">{loanImportResult.error}</div>
+              )}
+            </div>
+            <div className="flex justify-end px-5 py-4 border-t border-gray-700">
+              <button onClick={() => setShowLoanImport(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm">Închide</button>
             </div>
           </div>
         </div>
