@@ -18,7 +18,7 @@ async function main() {
     await prisma.team.upsert({
       where: { name },
       update: {},
-      create: { name, hourlyRate: 100, balance: 0 }
+      create: { name, balance: 0 }
     });
   }
 
