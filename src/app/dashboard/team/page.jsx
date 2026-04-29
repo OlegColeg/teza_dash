@@ -70,36 +70,39 @@ export default function ManageTeam() {
     if (res.ok) loadTeams();
   }
 
-  const totalDebt = teams.reduce((s, t) => s + Math.abs(Math.min(t.balance, 0)), 0);
+  const totalIncome = teams.reduce((s, t) => s + (t.totalIncome || 0), 0);
+  const totalGames = teams.reduce((s, t) => s + (t.gameCount || 0), 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">GESTIONARE ECHIPE</h1>
           <p className="text-gray-400">Echipe de fotbal înregistrate la stadion</p>
         </div>
-        <button onClick={openAdd} className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded flex items-center gap-2">
+        <button onClick={openAdd} className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded flex items-center gap-2 text-sm">
           <UserPlus size={18} /> ADAUGĂ ECHIPĂ
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-gray-800 p-4 rounded-lg text-center">
           <p className="text-gray-400 text-xs uppercase">Total Echipe</p>
           <p className="text-white text-2xl font-bold">{teams.length}</p>
         </div>
         <div className="bg-gray-800 p-4 rounded-lg text-center">
-          <p className="text-gray-400 text-xs uppercase">Cu Datorii</p>
-          <p className="text-red-400 text-2xl font-bold">{teams.filter(t => t.balance < 0).length}</p>
+          <p className="text-gray-400 text-xs uppercase">Total Meciuri</p>
+          <p className="text-teal-400 text-2xl font-bold">{totalGames}</p>
+        </div>
+        <div className="bg-gray-800 p-4 rounded-lg text-center col-span-2 sm:col-span-1">
+          <p className="text-gray-400 text-xs uppercase">Încasări Total</p>
+          <p className="text-green-400 text-2xl font-bold">{totalIncome.toLocaleString('ro-RO')} lei</p>
         </div>
         <div className="bg-gray-800 p-4 rounded-lg text-center">
-          <p className="text-gray-400 text-xs uppercase">Fără Datorii</p>
-          <p className="text-green-400 text-2xl font-bold">{teams.filter(t => t.balance >= 0).length}</p>
-        </div>
-        <div className="bg-gray-800 p-4 rounded-lg text-center">
-          <p className="text-gray-400 text-xs uppercase">Total Datorii</p>
-          <p className="text-red-400 text-2xl font-bold">{totalDebt.toLocaleString()} lei</p>
+          <p className="text-gray-400 text-xs uppercase">Medie / Echipă</p>
+          <p className="text-blue-400 text-2xl font-bold">
+            {teams.length > 0 ? Math.round(totalIncome / teams.length).toLocaleString('ro-RO') : 0} lei
+          </p>
         </div>
       </div>
 
@@ -117,9 +120,10 @@ export default function ManageTeam() {
           <thead>
             <tr className="border-b border-gray-700">
               <th className="py-3 px-4 text-left text-gray-300 text-sm">Echipă</th>
-              <th className="py-3 px-4 text-left text-gray-300 text-sm">Telefon</th>
-              <th className="py-3 px-4 text-left text-gray-300 text-sm">Balanță</th>
-              <th className="py-3 px-4 text-left text-gray-300 text-sm">Înregistrat</th>
+              <th className="py-3 px-4 text-left text-gray-300 text-sm hidden sm:table-cell">Telefon</th>
+              <th className="py-3 px-4 text-right text-gray-300 text-sm">Meciuri</th>
+              <th className="py-3 px-4 text-right text-gray-300 text-sm">Încasat Total</th>
+              <th className="py-3 px-4 text-left text-gray-300 text-sm hidden md:table-cell">Înregistrat</th>
               <th className="py-3 px-4 text-center text-gray-300 text-sm">Acțiuni</th>
             </tr>
           </thead>
@@ -129,18 +133,25 @@ export default function ManageTeam() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} className="py-8 text-center text-gray-400">Nicio echipă găsită</td></tr>
             ) : filtered.map(team => (
-              <tr key={team.id} className="border-b border-gray-700 hover:bg-gray-700">
-                <td className="py-3 px-4 text-white font-medium">{team.name}</td>
-                <td className="py-3 px-4 text-gray-300">{team.phone || '-'}</td>
+              <tr key={team.id} className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors">
                 <td className="py-3 px-4">
-                  <span className={`font-bold ${team.balance < 0 ? 'text-red-400' : 'text-green-400'}`}>
-                    {team.balance < 0 ? `-${Math.abs(team.balance).toLocaleString()}` : '0'} lei
-                  </span>
-                  {team.balance < 0 && (
-                    <span className="ml-2 text-xs bg-red-900 text-red-300 px-2 py-0.5 rounded-full">datorii</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-teal-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                      {team.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-white font-medium">{team.name}</span>
+                  </div>
                 </td>
-                <td className="py-3 px-4 text-gray-400 text-sm">
+                <td className="py-3 px-4 text-gray-300 hidden sm:table-cell">{team.phone || '–'}</td>
+                <td className="py-3 px-4 text-right">
+                  <span className="text-teal-400 font-semibold">{team.gameCount || 0}</span>
+                  <span className="text-gray-500 text-xs ml-1">jocuri</span>
+                </td>
+                <td className="py-3 px-4 text-right">
+                  <span className="text-green-400 font-bold">{(team.totalIncome || 0).toLocaleString('ro-RO')}</span>
+                  <span className="text-gray-500 text-xs ml-1">lei</span>
+                </td>
+                <td className="py-3 px-4 text-gray-400 text-sm hidden md:table-cell">
                   {new Date(team.createdAt).toLocaleDateString('ro-RO')}
                 </td>
                 <td className="py-3 px-4 text-center">

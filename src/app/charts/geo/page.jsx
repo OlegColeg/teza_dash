@@ -18,26 +18,16 @@ export default function GeographyChartPage() {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     Promise.all([
       fetch('/api/teams', { headers }).then(r => r.ok ? r.json() : []),
-      fetch('/api/reservations', { headers }).then(r => r.ok ? r.json() : []),
       fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : {}),
-    ]).then(([teamsRaw, resRaw, finsRaw]) => {
-      const teamsArr = teamsRaw.data || teamsRaw || [];
-      const resArr = resRaw.data || resRaw || [];
+    ]).then(([teamsRaw, finsRaw]) => {
+      const teamsArr = Array.isArray(teamsRaw) ? teamsRaw : [];
       const finsArr = finsRaw.transactions || finsRaw.data || (Array.isArray(finsRaw) ? finsRaw : []);
 
-      // Teams ranked by reservations + income
-      const teamMap = {};
-      teamsArr.forEach(t => {
-        teamMap[t.id] = { name: t.name || t.id, reservations: 0, income: 0 };
-      });
-      resArr.forEach(r => {
-        const key = r.teamId || r.team?.id;
-        if (!teamMap[key]) teamMap[key] = { name: r.team?.name || key, reservations: 0, income: 0 };
-        teamMap[key].reservations += 1;
-        teamMap[key].income += r.totalPrice || r.price || 0;
-      });
-      const stats = Object.values(teamMap)
-        .sort((a, b) => b.reservations - a.reservations)
+      // Teams from API — totalIncome + gameCount computed from finance records
+      const stats = teamsArr
+        .filter(t => (t.totalIncome || 0) > 0 || (t.gameCount || 0) > 0)
+        .map(t => ({ name: t.name, income: +(t.totalIncome || 0).toFixed(0), games: t.gameCount || 0 }))
+        .sort((a, b) => b.income - a.income)
         .slice(0, 10);
       setTeamStats(stats);
 
@@ -53,14 +43,17 @@ export default function GeographyChartPage() {
       setIncomeStats(incStats);
 
       const totalIncome = finsArr.filter(f => f.type === 'income').reduce((s, f) => s + (f.amount || 0), 0);
-      setTotals({ teams: teamsArr.length, reservations: resArr.length, income: +totalIncome.toFixed(0) });
+      const totalGames = teamsArr.reduce((s, t) => s + (t.gameCount || 0), 0);
+      setTotals({ teams: teamsArr.length, reservations: totalGames, income: +totalIncome.toFixed(0) });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
 
-  const activeData = tab === 'teams'
-    ? teamStats.map(t => ({ name: t.name, valoare: t.reservations, label: 'rezervări' }))
-    : incomeStats.map(i => ({ name: i.name, valoare: i.total, label: 'MDL' }));
+  const activeData = tab === 'income'
+    ? incomeStats.map(i => ({ name: i.name, valoare: i.total }))
+    : tab === 'games'
+      ? [...teamStats].sort((a, b) => b.games - a.games).map(t => ({ name: t.name, valoare: t.games, income: t.income }))
+      : teamStats.map(t => ({ name: t.name, valoare: t.income, games: t.games }));
 
   return (
     <div className="space-y-6">
@@ -72,7 +65,7 @@ export default function GeographyChartPage() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { icon: <Users size={18}/>, label: 'Total Echipe', value: totals.teams },
-          { icon: <Activity size={18}/>, label: 'Total Rezervări', value: totals.reservations },
+          { icon: <Activity size={18}/>, label: 'Total Meciuri', value: totals.reservations },
           { icon: <DollarSign size={18}/>, label: 'Total Venituri', value: `${totals.income.toLocaleString('ro-RO')} MDL` },
         ].map((card, i) => (
           <div key={i} className="bg-gray-800 rounded-xl p-4 border border-gray-700 flex items-center gap-3">
@@ -87,7 +80,8 @@ export default function GeographyChartPage() {
 
       <div className="flex gap-2">
         {[
-          { key: 'teams', label: 'Top Echipe (Rezervări)' },
+          { key: 'teams', label: 'Top Echipe (Plăți MDL)' },
+          { key: 'games', label: 'Top Echipe (Meciuri)' },
           { key: 'income', label: 'Surse de Venit' },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
@@ -111,10 +105,12 @@ export default function GeographyChartPage() {
                 <YAxis type="category" dataKey="name" stroke="#9CA3AF" tick={{ fontSize: 11 }} width={75} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: 8 }}
-                  formatter={(v, name, props) => [
-                    tab === 'teams' ? `${v} rezervări` : `${v.toLocaleString('ro-RO')} MDL`,
-                    tab === 'teams' ? 'Rezervări' : 'Venit'
-                  ]}
+                  formatter={(v, name, props) => {
+                    const entry = props?.payload;
+                    if (tab === 'games') return [`${v} meciuri${entry?.income ? ` · ${entry.income.toLocaleString('ro-RO')} MDL` : ''}`, 'Meciuri'];
+                    if (tab === 'teams') return [`${v.toLocaleString('ro-RO')} MDL${entry?.games ? ` · ${entry.games} meciuri` : ''}`, 'Total plătit'];
+                    return [`${v.toLocaleString('ro-RO')} MDL`, 'Venit'];
+                  }}
                 />
                 <Bar dataKey="valoare" radius={[0, 4, 4, 0]}>
                   {activeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}

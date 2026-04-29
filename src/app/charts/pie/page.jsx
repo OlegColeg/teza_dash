@@ -17,11 +17,9 @@ export default function PieChartPage() {
     Promise.all([
       fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : {}),
       fetch('/api/teams', { headers }).then(r => r.ok ? r.json() : []),
-      fetch('/api/reservations', { headers }).then(r => r.ok ? r.json() : []),
-    ]).then(([fins, teamsRaw, resRaw]) => {
+    ]).then(([fins, teamsRaw]) => {
       const finArr = fins.transactions || fins.data || (Array.isArray(fins) ? fins : []);
-      const teamsArr = teamsRaw.data || teamsRaw || [];
-      const resArr = resRaw.data || resRaw || [];
+      const teamsArr = Array.isArray(teamsRaw) ? teamsRaw : [];
 
       // Categorii venituri
       const incomeByCategory = {};
@@ -34,14 +32,10 @@ export default function PieChartPage() {
         .sort((a, b) => b.value - a.value);
       setCategoryData(cats);
 
-      // Echipe după nr. rezervări
-      const resByTeam = {};
-      resArr.forEach(r => {
-        const name = r.team?.name || r.teamId || 'Necunoscut';
-        resByTeam[name] = (resByTeam[name] || 0) + 1;
-      });
-      const teams = Object.entries(resByTeam)
-        .map(([name, value]) => ({ name, value }))
+      // Echipe după total plăți (din API teams — calculat din înregistrările de finanțe)
+      const teams = teamsArr
+        .filter(t => (t.totalIncome || 0) > 0)
+        .map(t => ({ name: t.name, value: +(t.totalIncome || 0).toFixed(0), games: t.gameCount || 0 }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 8);
       setTeamData(teams);
@@ -63,7 +57,7 @@ export default function PieChartPage() {
       <div className="flex gap-2">
         {[
           { key: 'categories', label: 'Venituri pe Categorii' },
-          { key: 'teams', label: 'Echipe după Rezervări' },
+          { key: 'teams', label: 'Top Echipe după Plăți' },
         ].map(t => (
           <button
             key={t.key}
@@ -83,7 +77,7 @@ export default function PieChartPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
             <h2 className="text-sm font-semibold text-gray-300 mb-4">
-              {tab === 'categories' ? 'Distribuție Venituri' : 'Activitate Echipe'}
+              {tab === 'categories' ? 'Distribuție Venituri pe Categorii' : 'Top Echipe după Total Plăți'}
             </h2>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -103,7 +97,7 @@ export default function PieChartPage() {
                   </Pie>
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: 8 }}
-                    formatter={(v, name) => [tab === 'categories' ? `${v.toLocaleString('ro-RO')} MDL` : `${v} rezervări`, name]}
+                    formatter={(v, name) => [`${v.toLocaleString('ro-RO')} MDL`, name]}
                   />
                   <Legend wrapperStyle={{ color: '#9CA3AF', fontSize: 12 }} />
                 </PieChart>
@@ -128,9 +122,12 @@ export default function PieChartPage() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-sm font-medium text-white">
-                      {tab === 'categories' ? `${item.value.toLocaleString('ro-RO')} MDL` : `${item.value} rez.`}
+                      {`${item.value.toLocaleString('ro-RO')} MDL`}
                     </p>
                     <p className="text-xs text-gray-500">{total > 0 ? (item.value / total * 100).toFixed(1) : 0}%</p>
+                    {tab === 'teams' && item.games > 0 && (
+                      <p className="text-xs text-teal-400">{item.games} meciuri</p>
+                    )}
                   </div>
                 </div>
               ))}

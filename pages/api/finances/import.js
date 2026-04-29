@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         // Creează echipa nouă
         try {
           const newTeam = await prisma.team.create({
-            data: { name: description, hourlyRate: 100, balance: 0 }
+            data: { name: description, balance: 0 }
           });
           teamCache[nameKey] = newTeam.id;
           teamId = newTeam.id;
