@@ -278,6 +278,23 @@ export default function FinancesPage() {
       .then(r => r.json()).then(d => setTotalDebt(d.totalDebt || 0)).catch(() => {});
   }, [data]);
 
+  // Physical cash from the banknote calculator
+  const [physicalCash, setPhysicalCash] = useState(null);
+  useEffect(() => {
+    const BILLS_LIST = [200, 100, 50, 20, 10, 5, 1];
+    const COINS_LIST = [10, 5, 2, 1];
+    fetch('/api/finances/cash-calculator', { headers: getHeaders() })
+      .then(r => r.json())
+      .then(d => {
+        const b = d.bills || {};
+        const c = d.coins || {};
+        const total = BILLS_LIST.reduce((s, bill) => s + bill * (Number(b[bill]) || 0), 0)
+                    + COINS_LIST.reduce((s, coin) => s + coin * (Number(c[coin]) || 0), 0);
+        setPhysicalCash(total);
+      })
+      .catch(() => setPhysicalCash(0));
+  }, []);
+
   const balanceWithDebt = data.summary.balance - totalDebt;
 
   return (
@@ -304,7 +321,7 @@ export default function FinancesPage() {
         </div>
       </div>
 
-      {/* Summary cards — exact logica din Excel */}
+      {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-gray-800 p-5 rounded-lg border-l-4 border-green-500">
           <p className="text-gray-400 text-xs uppercase tracking-wide">Total Încasări</p>
@@ -316,43 +333,97 @@ export default function FinancesPage() {
           <p className="text-red-400 text-2xl font-bold mt-1">{data.summary.expense.toLocaleString()} lei</p>
           <p className="text-gray-500 text-xs mt-1">Salariu + facturi + altele</p>
         </div>
-        <div className={`bg-gray-800 p-5 rounded-lg border-l-4 ${data.summary.balance >= 0 ? 'border-teal-500' : 'border-red-500'}`}>
-          <p className="text-gray-400 text-xs uppercase tracking-wide">Bani în Casă</p>
-          <p className={`text-2xl font-bold mt-1 ${data.summary.balance >= 0 ? 'text-teal-400' : 'text-red-400'}`}>
-            {data.summary.balance.toLocaleString()} lei
+        <div className={`bg-gray-800 p-5 rounded-lg border-l-4 ${physicalCash === null ? 'border-gray-600' : physicalCash >= 0 ? 'border-teal-500' : 'border-red-500'}`}>
+          <p className="text-gray-400 text-xs uppercase tracking-wide">Bani în Casă (Fizic)</p>
+          <p className={`text-2xl font-bold mt-1 ${physicalCash === null ? 'text-gray-500' : 'text-teal-400'}`}>
+            {physicalCash === null ? '...' : `${physicalCash.toLocaleString()} lei`}
           </p>
-          <p className="text-gray-500 text-xs mt-1">Încasări − Cheltuieli</p>
+          <p className="text-gray-500 text-xs mt-1">Numărat fizic · <a href="/cash-calculator" className="text-teal-600 hover:text-teal-400">actualizează</a></p>
         </div>
-        <div className={`bg-gray-800 p-5 rounded-lg border-l-4 ${balanceWithDebt >= 0 ? 'border-blue-500' : 'border-orange-500'}`}>
-          <p className="text-gray-400 text-xs uppercase tracking-wide">Casă − Datorii</p>
-          <p className={`text-2xl font-bold mt-1 ${balanceWithDebt >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
-            {balanceWithDebt.toLocaleString()} lei
+        <div className={`bg-gray-800 p-5 rounded-lg border-l-4 ${loansSummary.totalRamas > 0 ? 'border-amber-500' : 'border-gray-600'}`}>
+          <p className="text-gray-400 text-xs uppercase tracking-wide">Împrumuturi Neachitate</p>
+          <p className={`text-2xl font-bold mt-1 ${loansSummary.totalRamas > 0 ? 'text-amber-400' : 'text-gray-500'}`}>
+            {loansSummary.totalRamas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} lei
           </p>
-          <p className="text-gray-500 text-xs mt-1">Dacă toți ar achita acum</p>
+          <p className="text-gray-500 text-xs mt-1">Bani dați, nerambursați</p>
         </div>
       </div>
 
-      {/* Verification banner — exact ca în Excel */}
-      <div className={`rounded-lg p-4 flex items-center justify-between flex-wrap gap-2 ${data.summary.balance >= 0 ? 'bg-green-900/30 border border-green-700' : 'bg-red-900/30 border border-red-700'}`}>
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{data.summary.balance >= 0 ? '✅' : '❌'}</span>
-          <div>
-            <p className="text-white font-semibold">
-              {data.summary.balance >= 0
-                ? `Balanță pozitivă — ${data.summary.balance.toLocaleString()} lei disponibili`
-                : `DEFICIT — lipsesc ${Math.abs(data.summary.balance).toLocaleString()} lei`}
-            </p>
-            <p className="text-gray-400 text-sm">
-              Datorii neachitate de echipe: <span className="text-red-300 font-bold">{totalDebt.toLocaleString()} lei</span>
-              {' · '}
-              Dacă se achită toate: <span className={`font-bold ${balanceWithDebt >= 0 ? 'text-green-300' : 'text-red-300'}`}>{balanceWithDebt.toLocaleString()} lei</span>
-            </p>
+      {/* Verification banner */}
+      {(() => {
+        // accounting balance = income - expense (all finance records)
+        const accBalance = data.summary.balance;
+        // adjusted expected physical = accounting balance - outstanding loans
+        // (loans given out reduce physical cash; if tracked separately in Loan model not as Finance expense, subtract them)
+        const adjustedExpected = accBalance - loansSummary.totalRamas;
+        // difference: physical vs adjusted expected
+        const diff = physicalCash !== null ? physicalCash - adjustedExpected : null;
+        const ok = diff !== null && Math.abs(diff) < 1;
+        return (
+          <div className={`rounded-lg p-4 border ${
+            physicalCash === null ? 'bg-gray-800/60 border-gray-700' :
+            ok ? 'bg-green-900/25 border-green-700' :
+            diff > 0 ? 'bg-blue-900/25 border-blue-700' :
+            'bg-red-900/25 border-red-700'
+          }`}>
+            {/* Top row: 4 numbers */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Balanță contabilă</p>
+                <p className={`font-bold text-lg ${accBalance >= 0 ? 'text-blue-300' : 'text-red-400'}`}>{accBalance.toLocaleString()} lei</p>
+                <p className="text-gray-600 text-xs">Încasări − Cheltuieli</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Bani fizici în casă</p>
+                <p className="font-bold text-lg text-teal-300">{physicalCash !== null ? `${physicalCash.toLocaleString()} lei` : '—'}</p>
+                <p className="text-gray-600 text-xs">Din calculator bancnote</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Împrumuturi neachitate</p>
+                <p className="font-bold text-lg text-amber-300">{loansSummary.totalRamas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} lei</p>
+                <p className="text-gray-600 text-xs">Bani dați, de recuperat</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Datorii echipe</p>
+                <p className="font-bold text-lg text-orange-300">{totalDebt.toLocaleString()} lei</p>
+                <p className="text-gray-600 text-xs">De la echipe (balans negativ)</p>
+              </div>
+            </div>
+            {/* Verification result */}
+            <div className="border-t border-gray-700 pt-3 flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <span className="text-xl mt-0.5">{physicalCash === null ? '⏳' : ok ? '✅' : diff > 0 ? '🔵' : '❌'}</span>
+                <div>
+                  {physicalCash === null ? (
+                    <p className="text-gray-400 font-semibold">Calculatorul nu a fost încărcat — <a href="/cash-calculator" className="text-teal-400 hover:underline">mergi la Calculator Bancnote</a> pentru a număra fizic</p>
+                  ) : ok ? (
+                    <>
+                      <p className="text-green-300 font-semibold">✅ Sumele COINCID — totul este în regulă</p>
+                      <p className="text-gray-400 text-sm">Fizic ({physicalCash.toLocaleString()} lei) = Contabil ({accBalance.toLocaleString()}) − Împrumuturi ({loansSummary.totalRamas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })}) = {adjustedExpected.toLocaleString()} lei</p>
+                    </>
+                  ) : diff > 0 ? (
+                    <>
+                      <p className="text-blue-300 font-semibold">Fizic ai cu {diff.toLocaleString()} lei MAI MULT decât trebuie</p>
+                      <p className="text-gray-400 text-sm">Probabil un venit neînregistrat sau o cheltuială introdusă în plus în evidență.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-red-300 font-semibold">❌ Fizic LIPSESC {Math.abs(diff).toLocaleString()} lei față de evidență</p>
+                      <p className="text-gray-400 text-sm">Probabil o cheltuială sau un împrumut neînregistrat în evidență, sau bani luați din casă fără înregistrare.</p>
+                    </>
+                  )}
+                  {loansSummary.totalRamas > 0 && physicalCash !== null && (
+                    <p className="text-amber-300 text-xs mt-1">Dacă se restituie toate împrumuturile ({loansSummary.totalRamas.toLocaleString('ro-MD', { minimumFractionDigits: 2 })} lei), fizic vei avea: <strong>{(physicalCash + loansSummary.totalRamas).toLocaleString()} lei</strong></p>
+                  )}
+                </div>
+              </div>
+              <a href="/cash-calculator" className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm whitespace-nowrap">
+                🧮 Calculator Bancnote
+              </a>
+            </div>
           </div>
-        </div>
-        <a href="/cash-calculator" className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">
-          🧮 Calculator Bancnote
-        </a>
-      </div>
+        );
+      })()}
 
       {/* Filters + Search */}
       <div className="space-y-3">
