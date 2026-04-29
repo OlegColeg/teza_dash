@@ -13,6 +13,7 @@ import {
 const PAGES = [
   { label: 'Dashboard', href: '/', icon: 'Home' },
   { label: 'Echipe', href: '/dashboard/team', icon: 'Users' },
+  { label: 'Angajați', href: '/employees', icon: 'Briefcase' },
   { label: 'Calendar Rezervări', href: '/calendar', icon: 'Calendar' },
   { label: 'Finanțe', href: '/finances', icon: 'DollarSign' },
   { label: 'Datorii', href: '/debts', icon: 'AlertTriangle' },

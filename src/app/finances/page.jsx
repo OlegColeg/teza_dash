@@ -1,7 +1,7 @@
 // src/app/finances/page.jsx
 "use client";
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, X, Check, TrendingUp, TrendingDown, DollarSign, Search } from "lucide-react";
+import { Plus, Trash2, X, Check, TrendingUp, TrendingDown, DollarSign, Search, Upload, FileText, AlertCircle } from "lucide-react";
 
 const CATEGORIES_INCOME = [
   { value: "chirie_teren", label: "Chirie Teren" },
@@ -40,6 +40,11 @@ export default function FinancesPage() {
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [showImport, setShowImport] = useState(false);
+  const [importType, setImportType] = useState('income');
+  const [importResult, setImportResult] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const importFileRef = React.useRef(null);
 
   function getHeaders() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
@@ -114,7 +119,7 @@ export default function FinancesPage() {
           <h1 className="text-2xl font-bold text-white">FINANȚE</h1>
           <p className="text-gray-400">Evidența completă a încasărilor și cheltuielilor</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button onClick={() => openModal('income')}
             className="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2 text-sm">
             <Plus size={16} /> ÎNCASARE
@@ -122,6 +127,10 @@ export default function FinancesPage() {
           <button onClick={() => openModal('expense')}
             className="bg-red-700 hover:bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2 text-sm">
             <Plus size={16} /> CHELTUIALĂ
+          </button>
+          <button onClick={() => { setShowImport(true); setImportResult(null); }}
+            className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2 text-sm">
+            <Upload size={16} /> IMPORT CSV
           </button>
         </div>
       </div>
@@ -330,6 +339,115 @@ export default function FinancesPage() {
                 <Check size={16} />{saving ? 'Se salvează...' : 'Salvează'}
               </button>
               <button onClick={() => setShowModal(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2.5 rounded">Anulează</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Import CSV Modal */}
+      {showImport && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-2xl shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-gray-700">
+              <h2 className="text-white font-semibold flex items-center gap-2"><Upload size={18} /> Import Date din CSV / TXT</h2>
+              <button onClick={() => setShowImport(false)} className="text-gray-400 hover:text-white"><X size={18} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              {/* Tip */}
+              <div className="flex gap-2">
+                {[['income','💚 Venituri (Încasări)'],['expense','🔴 Cheltuieli']].map(([val,lbl]) => (
+                  <button key={val} onClick={() => setImportType(val)}
+                    className={`flex-1 py-2 rounded text-sm font-medium transition ${importType === val ? (val==='income' ? 'bg-green-700 text-white' : 'bg-red-700 text-white') : 'bg-gray-700 text-gray-400 hover:text-white'}`}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+
+              {/* Format instructions */}
+              <div className="bg-gray-900 rounded-lg p-4 text-xs text-gray-400 space-y-2">
+                <div className="flex items-start gap-2">
+                  <FileText size={14} className="text-teal-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-gray-200 font-medium mb-1">Format CSV (separator: virgulă sau punct-virgulă):</p>
+                    {importType === 'income' ? (
+                      <>
+                        <p className="font-mono bg-gray-800 px-2 py-1 rounded text-green-300">echipa,data,suma,observatii</p>
+                        <p className="mt-1">Exemplu:</p>
+                        <p className="font-mono bg-gray-800 px-2 py-1 rounded text-gray-300">FC Vulturii,2026-04-01,500,achitat cash<br />Arcadii Team,2026-04-05,300,</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-mono bg-gray-800 px-2 py-1 rounded text-red-300">denumire,data,suma,categorie,observatii</p>
+                        <p className="mt-1">Categorii: <span className="text-teal-300">salariu, electricitate, mentenanta, curatenie, reparatii, achizitii, imprumut, altele</span></p>
+                        <p className="font-mono bg-gray-800 px-2 py-1 rounded text-gray-300">Oală Oleg Salariu,2026-04-05,3000,salariu,<br />Electricitate Aprilie,2026-04-10,850,electricitate,factura nr 123</p>
+                      </>
+                    )}
+                    <p className="mt-1 text-yellow-400">⚠ Data obligatorie în format: YYYY-MM-DD</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* File upload */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-2">Selectează fișier CSV sau TXT:</label>
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".csv,.txt"
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    setImporting(true); setImportResult(null);
+                    const text = await file.text();
+                    const lines = text.split(/\r?\n/).filter(l => l.trim());
+                    const sep = lines[0]?.includes(';') ? ';' : ',';
+                    // Skip header row if first col is non-numeric text like 'echipa'/'denumire'
+                    const dataLines = /^[a-zA-Z\s]+$/.test(lines[0]?.split(sep)[0]?.trim()) ? lines.slice(1) : lines;
+                    const rows = dataLines.map(line => {
+                      const cols = line.split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
+                      if (importType === 'income') {
+                        return { echipa: cols[0], data: cols[1], suma: cols[2], observatii: cols[3] || '' };
+                      } else {
+                        return { denumire: cols[0], data: cols[1], suma: cols[2], categorie: cols[3] || 'altele', observatii: cols[4] || '' };
+                      }
+                    }).filter(r => r.suma || r.echipa || r.denumire);
+                    if (rows.length === 0) { setImportResult({ error: 'Fișierul este gol sau formatul e incorect' }); setImporting(false); return; }
+                    const token = localStorage.getItem('token');
+                    const res = await fetch('/api/finances/import', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                      body: JSON.stringify({ type: importType, rows })
+                    });
+                    const result = await res.json();
+                    setImportResult(result);
+                    setImporting(false);
+                    if ((result.created || 0) > 0) load();
+                    if (importFileRef.current) importFileRef.current.value = '';
+                  }}
+                  className="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-teal-700 file:text-white hover:file:bg-teal-600 cursor-pointer"
+                />
+              </div>
+
+              {/* Result */}
+              {importing && <div className="text-center text-gray-400 text-sm py-2">Se importă datele...</div>}
+              {importResult && !importResult.error && (
+                <div className="space-y-2">
+                  <div className="bg-green-900/30 border border-green-700 rounded-lg px-4 py-3 text-sm">
+                    <p className="text-green-300 font-medium">✅ Importate cu succes: <strong>{importResult.created}</strong> înregistrări</p>
+                  </div>
+                  {importResult.errors?.length > 0 && (
+                    <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg px-4 py-3 text-sm">
+                      <p className="text-yellow-300 font-medium flex items-center gap-1 mb-2"><AlertCircle size={14} /> Erori ({importResult.errors.length}):</p>
+                      <ul className="space-y-1">{importResult.errors.map((e, i) => <li key={i} className="text-yellow-400 text-xs">{e}</li>)}</ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              {importResult?.error && (
+                <div className="bg-red-900/30 border border-red-700 rounded-lg px-4 py-3 text-sm text-red-300">{importResult.error}</div>
+              )}
+            </div>
+            <div className="flex justify-end px-5 py-4 border-t border-gray-700">
+              <button onClick={() => setShowImport(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm">Închide</button>
             </div>
           </div>
         </div>

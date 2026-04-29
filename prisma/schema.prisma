@@ -66,7 +66,23 @@ model Finance {
 }
 
 // ─────────────────────────────────────────────
-// Entitate 5: Calculator Bancnote (singleton)
+// Entitate 5: Angajați
+// ─────────────────────────────────────────────
+model Employee {
+  id        String   @id @default(uuid())
+  name      String
+  role      String   // ex: "ingrijitor", "casier", "administrator", "antrenor"
+  phone     String?
+  email     String?
+  salary    Float    @default(0)
+  hiredAt   String   // YYYY-MM-DD
+  status    String   @default("active") // "active" | "inactive"
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────
+// Entitate 6: Calculator Bancnote (singleton)
 // ─────────────────────────────────────────────
 model CashCalculator {
   id        String   @id @default("singleton")

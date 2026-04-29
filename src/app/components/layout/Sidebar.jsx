@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, Users, Calendar, BarChart2, PieChart, TrendingUp, Map, DollarSign, AlertTriangle, LogOut, Calculator } from 'lucide-react';
+import { Home, Users, Calendar, BarChart2, PieChart, TrendingUp, Map, DollarSign, AlertTriangle, LogOut, Calculator, Briefcase } from 'lucide-react';
 
 const Sidebar = ({ sidebarVisible, toggleSidebar, user, onLogout }) => {
   const [expanded, setExpanded] = useState({
@@ -77,6 +77,10 @@ const Sidebar = ({ sidebarVisible, toggleSidebar, user, onLogout }) => {
               <Link href="/dashboard/team" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <Users size={20} className="mr-3" />
                 <span>Echipe</span>
+              </Link>
+              <Link href="/employees" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
+                <Briefcase size={20} className="mr-3" />
+                <span>Angajați</span>
               </Link>
               <Link href="/calendar" className="flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md">
                 <Calendar size={20} className="mr-3" />
