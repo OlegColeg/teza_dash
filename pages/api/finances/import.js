@@ -14,6 +14,12 @@ export default async function handler(req, res) {
 
   const created = [];
   const errors = [];
+  const teamsCreated = [];
+
+  // Cache echipe existente (name -> id) pentru a evita query-uri repetate
+  const existingTeams = await prisma.team.findMany({ select: { id: true, name: true } });
+  const teamCache = {};
+  existingTeams.forEach(t => { teamCache[t.name.toLowerCase()] = t.id; });
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -29,6 +35,29 @@ export default async function handler(req, res) {
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { errors.push(`Rândul ${rowNum}: data invalidă (format: YYYY-MM-DD)`); continue; }
     if (isNaN(amount) || amount <= 0) { errors.push(`Rândul ${rowNum}: suma invalidă`); continue; }
 
+    // Dacă e venit (încasare) — auto-creează echipa dacă nu există
+    let teamId = null;
+    if (type === 'income') {
+      const nameKey = description.toLowerCase();
+      if (teamCache[nameKey]) {
+        teamId = teamCache[nameKey];
+      } else {
+        // Creează echipa nouă
+        try {
+          const newTeam = await prisma.team.create({
+            data: { name: description, hourlyRate: 100, balance: 0 }
+          });
+          teamCache[nameKey] = newTeam.id;
+          teamId = newTeam.id;
+          teamsCreated.push(description);
+        } catch (e) {
+          // Poate că a fost creată între timp (race condition) — re-query
+          const existing = await prisma.team.findFirst({ where: { name: { equals: description, mode: 'insensitive' } } });
+          if (existing) { teamCache[nameKey] = existing.id; teamId = existing.id; }
+        }
+      }
+    }
+
     try {
       const record = await prisma.finance.create({
         data: {
@@ -39,6 +68,7 @@ export default async function handler(req, res) {
           notes: notes || null,
           amount,
           date,
+          teamId: teamId || null,
         }
       });
       created.push(record);
@@ -47,5 +77,6 @@ export default async function handler(req, res) {
     }
   }
 
-  return res.json({ created: created.length, errors });
+  return res.json({ created: created.length, teamsCreated, errors });
 }
+

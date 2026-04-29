@@ -40,6 +40,8 @@ export default function FinancesPage() {
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(new Set());
+  const [deletingMulti, setDeletingMulti] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importType, setImportType] = useState('income');
   const [importResult, setImportResult] = useState(null);
@@ -53,6 +55,7 @@ export default function FinancesPage() {
 
   function load() {
     setLoading(true);
+    setSelected(new Set());
     fetch('/api/finances', { headers: getHeaders() })
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
@@ -100,6 +103,34 @@ export default function FinancesPage() {
     if (!confirm('Ștergi această tranzacție?')) return;
     const res = await fetch(`/api/finances/${id}`, { method: 'DELETE', headers: getHeaders() });
     if (res.ok) load();
+  }
+
+  async function handleDeleteSelected() {
+    if (selected.size === 0) return;
+    if (!confirm(`Ștergi ${selected.size} tranzacții selectate?`)) return;
+    setDeletingMulti(true);
+    await Promise.all([...selected].map(id =>
+      fetch(`/api/finances/${id}`, { method: 'DELETE', headers: getHeaders() })
+    ));
+    setSelected(new Set());
+    setDeletingMulti(false);
+    load();
+  }
+
+  function toggleSelect(id) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === filtered.length && filtered.length > 0) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map(t => t.id)));
+    }
   }
 
   // Total datorii neachitate (teams with negative balance)
@@ -204,26 +235,54 @@ export default function FinancesPage() {
         <span className="text-gray-500 text-sm">{filtered.length} înregistrări</span>
       </div>
 
+      {/* Bulk actions bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center justify-between bg-red-900/30 border border-red-700 rounded-lg px-4 py-2.5">
+          <span className="text-red-300 text-sm font-medium">{selected.size} tranzacții selectate</span>
+          <div className="flex gap-2">
+            <button onClick={() => setSelected(new Set())} className="text-gray-400 hover:text-white text-sm px-3 py-1 rounded hover:bg-gray-700 transition">Deselectează</button>
+            <button onClick={handleDeleteSelected} disabled={deletingMulti}
+              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-1.5 rounded transition disabled:opacity-50">
+              <Trash2 size={13} /> {deletingMulti ? 'Se șterg...' : `Șterge ${selected.size} selectate`}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table — like Excel layout */}
       <div className="bg-gray-800 rounded-lg overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-gray-700 bg-gray-900/50">
+              <th className="py-3 px-3 text-center w-8">
+                <input type="checkbox"
+                  checked={filtered.length > 0 && selected.size === filtered.length}
+                  onChange={toggleSelectAll}
+                  className="accent-teal-500 cursor-pointer w-3.5 h-3.5"
+                />
+              </th>
               <th className="py-3 px-3 text-left text-gray-400 font-medium w-24">Data</th>
               <th className="py-3 px-3 text-left text-gray-400 font-medium">Client / Denumire</th>
               <th className="py-3 px-3 text-left text-gray-400 font-medium">Categorie</th>
               <th className="py-3 px-3 text-left text-gray-400 font-medium">Descriere / Observații</th>
               <th className="py-3 px-3 text-right text-gray-400 font-medium w-32">Sumă</th>
-              <th className="py-3 px-3 text-center text-gray-400 font-medium w-16"></th>
+              <th className="py-3 px-3 text-center text-gray-400 font-medium w-10"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={6} className="py-8 text-center text-gray-400">Se încarcă...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="py-8 text-center text-gray-400">Nicio tranzacție</td></tr>
+              <tr><td colSpan={7} className="py-8 text-center text-gray-400">Nicio tranzacție</td></tr>
             ) : filtered.map(t => (
-              <tr key={t.id} className={`border-b border-gray-700/50 hover:bg-gray-700/50 ${t.type === 'income' ? '' : 'bg-red-900/10'}`}>
+              <tr key={t.id} className={`border-b border-gray-700/50 hover:bg-gray-700/50 transition-colors ${selected.has(t.id) ? 'bg-teal-900/20' : t.type !== 'income' ? 'bg-red-900/10' : ''}`}>
+                <td className="py-2.5 px-3 text-center">
+                  <input type="checkbox"
+                    checked={selected.has(t.id)}
+                    onChange={() => toggleSelect(t.id)}
+                    className="accent-teal-500 cursor-pointer w-3.5 h-3.5"
+                  />
+                </td>
                 <td className="py-2.5 px-3 text-gray-400 text-xs whitespace-nowrap">
                   {new Date(t.date + 'T12:00:00').toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                 </td>
@@ -250,6 +309,7 @@ export default function FinancesPage() {
           {filtered.length > 0 && (
             <tfoot>
               <tr className="border-t-2 border-gray-600 bg-gray-900/50">
+                <td />
                 <td colSpan={4} className="py-3 px-3 text-gray-400 text-sm font-medium">
                   Total filtrat ({filtered.length} înreg.)
                 </td>
@@ -433,6 +493,11 @@ export default function FinancesPage() {
                 <div className="space-y-2">
                   <div className="bg-green-900/30 border border-green-700 rounded-lg px-4 py-3 text-sm">
                     <p className="text-green-300 font-medium">✅ Importate cu succes: <strong>{importResult.created}</strong> înregistrări</p>
+                    {importResult.teamsCreated?.length > 0 && (
+                      <p className="text-teal-300 text-xs mt-1">
+                        🆕 Echipe noi create automat: <strong>{importResult.teamsCreated.join(', ')}</strong>
+                      </p>
+                    )}
                   </div>
                   {importResult.errors?.length > 0 && (
                     <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg px-4 py-3 text-sm">
