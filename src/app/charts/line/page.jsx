@@ -16,10 +16,10 @@ export default function LineChartPage() {
     const token = localStorage.getItem('token');
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     Promise.all([
-      fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : []),
+      fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : {}),
       fetch('/api/reservations', { headers }).then(r => r.ok ? r.json() : []),
     ]).then(([fins, resRaw]) => {
-      const finArr = fins.data || fins || [];
+      const finArr = fins.transactions || fins.data || (Array.isArray(fins) ? fins : []);
       const resArr = resRaw.data || resRaw || [];
       const year = new Date().getFullYear();
       const monthly = MONTHS.map((m, idx) => {
@@ -90,20 +90,3 @@ export default function LineChartPage() {
     </div>
   );
 }
-
-
-// Date pentru grafic
-const data = [
-  { name: "Ian", visits: 4000, sales: 2400, revenue: 1600 },
-  { name: "Feb", visits: 3000, sales: 1398, revenue: 2210 },
-  { name: "Mar", visits: 9800, sales: 2000, revenue: 2290 },
-  { name: "Apr", visits: 3908, sales: 2780, revenue: 3300 },
-  { name: "Mai", visits: 4800, sales: 1890, revenue: 2500 },
-  { name: "Iun", visits: 3800, sales: 2390, revenue: 1700 },
-  { name: "Iul", visits: 4300, sales: 3490, revenue: 2100 },
-  { name: "Aug", visits: 5200, sales: 3200, revenue: 2400 },
-  { name: "Sep", visits: 4900, sales: 2800, revenue: 2200 },
-  { name: "Oct", visits: 3600, sales: 2300, revenue: 1800 },
-  { name: "Nov", visits: 5900, sales: 4000, revenue: 2700 },
-  { name: "Dec", visits: 4200, sales: 3200, revenue: 2100 }
-];

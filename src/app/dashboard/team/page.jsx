@@ -10,7 +10,7 @@ export default function ManageTeam() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editTeam, setEditTeam] = useState(null);
-  const [form, setForm] = useState({ name: "", phone: "", hourlyRate: 200 });
+  const [form, setForm] = useState({ name: "", phone: "" });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -36,14 +36,14 @@ export default function ManageTeam() {
 
   function openAdd() {
     setEditTeam(null);
-    setForm({ name: "", phone: "", hourlyRate: 200 });
+    setForm({ name: "", phone: "" });
     setError("");
     setShowModal(true);
   }
 
   function openEdit(team) {
     setEditTeam(team);
-    setForm({ name: team.name, phone: team.phone, hourlyRate: team.hourlyRate });
+    setForm({ name: team.name, phone: team.phone });
     setError("");
     setShowModal(true);
   }
@@ -118,7 +118,6 @@ export default function ManageTeam() {
             <tr className="border-b border-gray-700">
               <th className="py-3 px-4 text-left text-gray-300 text-sm">Echipă</th>
               <th className="py-3 px-4 text-left text-gray-300 text-sm">Telefon</th>
-              <th className="py-3 px-4 text-left text-gray-300 text-sm">Tarif/Oră</th>
               <th className="py-3 px-4 text-left text-gray-300 text-sm">Balanță</th>
               <th className="py-3 px-4 text-left text-gray-300 text-sm">Înregistrat</th>
               <th className="py-3 px-4 text-center text-gray-300 text-sm">Acțiuni</th>
@@ -133,7 +132,6 @@ export default function ManageTeam() {
               <tr key={team.id} className="border-b border-gray-700 hover:bg-gray-700">
                 <td className="py-3 px-4 text-white font-medium">{team.name}</td>
                 <td className="py-3 px-4 text-gray-300">{team.phone || '-'}</td>
-                <td className="py-3 px-4 text-gray-300">{team.hourlyRate} lei/oră</td>
                 <td className="py-3 px-4">
                   <span className={`font-bold ${team.balance < 0 ? 'text-red-400' : 'text-green-400'}`}>
                     {team.balance < 0 ? `-${Math.abs(team.balance).toLocaleString()}` : '0'} lei
@@ -175,11 +173,6 @@ export default function ManageTeam() {
                 <input type="text" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                   className="w-full bg-gray-700 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-teal-400"
                   placeholder="+373 79 000 000" />
-              </div>
-              <div>
-                <label className="text-gray-300 text-sm block mb-1">Tarif pe Oră (lei)</label>
-                <input type="number" value={form.hourlyRate} onChange={e => setForm(f => ({ ...f, hourlyRate: Number(e.target.value) }))}
-                  className="w-full bg-gray-700 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-teal-400" min="0" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">

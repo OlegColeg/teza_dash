@@ -32,7 +32,7 @@ const Sidebar = ({ sidebarVisible, toggleSidebar, user, onLogout }) => {
         dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 
         border-r border-e-slate-950 w-64 min-h-screen bg-gray-900 text-gray-300 
         flex flex-col transition-all duration-300 fixed
-        ${sidebarVisible ? 'translate-x-0' : '-translate-x-full'} top-0 left-0 z-10`}
+        ${sidebarVisible ? 'translate-x-0' : '-translate-x-full'} top-0 left-0 z-40`}
       >
         {/* Logo and Brand */}
         <div className="py-4 px-6 flex items-center">

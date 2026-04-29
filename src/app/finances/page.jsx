@@ -1,7 +1,7 @@
 // src/app/finances/page.jsx
 "use client";
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, X, Check, TrendingUp, TrendingDown, DollarSign, Search, Upload, FileText, AlertCircle } from "lucide-react";
+import { Plus, Trash2, X, Check, TrendingUp, TrendingDown, DollarSign, Search, Upload, FileText, AlertCircle, SlidersHorizontal, ChevronDown } from "lucide-react";
 
 const CATEGORIES_INCOME = [
   { value: "chirie_teren", label: "Chirie Teren" },
@@ -47,6 +47,15 @@ export default function FinancesPage() {
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
   const importFileRef = React.useRef(null);
+  // Advanced filters
+  const [teamsList, setTeamsList] = useState([]);
+  const [filterTeam, setFilterTeam] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterAmtMin, setFilterAmtMin] = useState('');
+  const [filterAmtMax, setFilterAmtMax] = useState('');
+  const [showAdvFilters, setShowAdvFilters] = useState(false);
 
   function getHeaders() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
@@ -64,8 +73,27 @@ export default function FinancesPage() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    fetch('/api/teams', { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setTeamsList(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []);
+
+  const activeFiltersCount = [filterTeam, filterCategory, filterDateFrom, filterDateTo, filterAmtMin, filterAmtMax].filter(Boolean).length;
+
   const filtered = data.transactions
     .filter(t => filter === 'all' || t.type === filter)
+    .filter(t => {
+      if (!filterTeam) return true;
+      const team = teamsList.find(tm => tm.id === filterTeam);
+      return t.teamId === filterTeam || (t.client || '').toLowerCase().includes((team?.name || '').toLowerCase());
+    })
+    .filter(t => !filterCategory || t.category === filterCategory)
+    .filter(t => !filterDateFrom || t.date >= filterDateFrom)
+    .filter(t => !filterDateTo || t.date <= filterDateTo)
+    .filter(t => !filterAmtMin || t.amount >= Number(filterAmtMin))
+    .filter(t => !filterAmtMax || t.amount <= Number(filterAmtMax))
     .filter(t => {
       if (!search) return true;
       const s = search.toLowerCase();
@@ -217,22 +245,89 @@ export default function FinancesPage() {
       </div>
 
       {/* Filters + Search */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="flex gap-2">
-          {[['all', 'Toate'], ['income', '💚 Încasări'], ['expense', '🔴 Cheltuieli']].map(([val, label]) => (
-            <button key={val} onClick={() => setFilter(val)}
-              className={`px-4 py-2 rounded text-sm font-medium transition ${filter === val ? 'bg-teal-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
-              {label}
-            </button>
-          ))}
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex gap-1.5 flex-wrap">
+            {[['all', 'Toate'], ['income', '💚 Încasări'], ['expense', '🔴 Cheltuieli']].map(([val, label]) => (
+              <button key={val} onClick={() => setFilter(val)}
+                className={`px-3 py-2 rounded text-sm font-medium transition ${filter === val ? 'bg-teal-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="relative flex-1 min-w-40">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input type="text" placeholder="Caută client, descriere..." value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full bg-gray-800 text-gray-300 rounded pl-8 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-400" />
+          </div>
+          <button onClick={() => setShowAdvFilters(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded text-sm transition whitespace-nowrap ${showAdvFilters || activeFiltersCount > 0 ? 'bg-teal-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+            <SlidersHorizontal size={14} />
+            Filtre
+            {activeFiltersCount > 0 && <span className="bg-teal-400 text-gray-900 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">{activeFiltersCount}</span>}
+            <ChevronDown size={12} className={`transition-transform ${showAdvFilters ? 'rotate-180' : ''}`} />
+          </button>
+          <span className="text-gray-500 text-sm whitespace-nowrap">{filtered.length} înreg.</span>
         </div>
-        <div className="relative flex-1 min-w-48">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder="Caută după client, descriere..." value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full bg-gray-800 text-gray-300 rounded pl-8 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-400" />
-        </div>
-        <span className="text-gray-500 text-sm">{filtered.length} înregistrări</span>
+
+        {showAdvFilters && (
+          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="col-span-2 sm:col-span-1 lg:col-span-2">
+                <label className="text-xs text-gray-400 block mb-1">Echipă / Client</label>
+                <select value={filterTeam} onChange={e => setFilterTeam(e.target.value)}
+                  className="w-full bg-gray-700 text-gray-200 text-sm rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-400">
+                  <option value="">Toate echipele</option>
+                  {teamsList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Categorie</label>
+                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
+                  className="w-full bg-gray-700 text-gray-200 text-sm rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-400">
+                  <option value="">Toate</option>
+                  <optgroup label="Încasări">
+                    {CATEGORIES_INCOME.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </optgroup>
+                  <optgroup label="Cheltuieli">
+                    {CATEGORIES_EXPENSE.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </optgroup>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Data de la</label>
+                <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
+                  className="w-full bg-gray-700 text-gray-200 text-sm rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-400" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Data până la</label>
+                <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)}
+                  className="w-full bg-gray-700 text-gray-200 text-sm rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-400" />
+              </div>
+              <div className="col-span-2 sm:col-span-1 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Sumă min</label>
+                  <input type="number" value={filterAmtMin} onChange={e => setFilterAmtMin(e.target.value)}
+                    placeholder="0" min="0"
+                    className="w-full bg-gray-700 text-gray-200 text-sm rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-400" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Sumă max</label>
+                  <input type="number" value={filterAmtMax} onChange={e => setFilterAmtMax(e.target.value)}
+                    placeholder="∞" min="0"
+                    className="w-full bg-gray-700 text-gray-200 text-sm rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-400" />
+                </div>
+              </div>
+            </div>
+            {activeFiltersCount > 0 && (
+              <button onClick={() => { setFilterTeam(''); setFilterCategory(''); setFilterDateFrom(''); setFilterDateTo(''); setFilterAmtMin(''); setFilterAmtMax(''); }}
+                className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                <X size={12} /> Resetează filtrele ({activeFiltersCount} active)
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bulk actions bar */}

@@ -11,7 +11,7 @@ import AccessibilityPanel from "@/app/components/AccessibilityPanel";
 const PUBLIC_PATHS = ['/login', '/register'];
 
 export default function RootLayout({ children }) {
-  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -22,11 +22,12 @@ export default function RootLayout({ children }) {
   const router = useRouter();
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
 
-  // Aplică tema la mount
+  // Aplică tema la mount + setare sidebar bazat pe dimensiunea ecranului
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     setTheme(savedTheme);
     applyTheme(savedTheme);
+    if (window.innerWidth >= 768) setSidebarVisible(true);
   }, []);
 
   // Verifică autentificarea
@@ -119,14 +120,18 @@ export default function RootLayout({ children }) {
             </div>
           </div>
         ) : isLoggedIn ? (
-          <div className="flex">
+          <div className="flex min-h-screen relative">
+            {/* Mobile overlay */}
+            {sidebarVisible && (
+              <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={toggleSidebar} />
+            )}
             <Sidebar
               sidebarVisible={sidebarVisible}
               toggleSidebar={toggleSidebar}
               user={user}
               onLogout={handleLogout}
             />
-            <div className={`flex flex-col flex-1 transition-all duration-300 ${sidebarVisible ? 'ml-64' : 'ml-0'}`}>
+            <div className={`flex flex-col flex-1 min-w-0 transition-all duration-300 ${sidebarVisible ? 'md:ml-64' : 'ml-0'}`}>
               <Navbar
                 toggleSidebar={toggleSidebar}
                 sidebarVisible={sidebarVisible}
@@ -136,7 +141,7 @@ export default function RootLayout({ children }) {
                 onLogout={handleLogout}
                 onOpenAccessibility={() => setAccessibilityOpen(true)}
               />
-              <main className="p-5">
+              <main className="p-3 sm:p-5 flex-1 min-w-0">
                 {children}
               </main>
             </div>

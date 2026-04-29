@@ -19,11 +19,11 @@ export default function GeographyChartPage() {
     Promise.all([
       fetch('/api/teams', { headers }).then(r => r.ok ? r.json() : []),
       fetch('/api/reservations', { headers }).then(r => r.ok ? r.json() : []),
-      fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : []),
+      fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : {}),
     ]).then(([teamsRaw, resRaw, finsRaw]) => {
       const teamsArr = teamsRaw.data || teamsRaw || [];
       const resArr = resRaw.data || resRaw || [];
-      const finsArr = finsRaw.data || finsRaw || [];
+      const finsArr = finsRaw.transactions || finsRaw.data || (Array.isArray(finsRaw) ? finsRaw : []);
 
       // Teams ranked by reservations + income
       const teamMap = {};
@@ -127,23 +127,3 @@ export default function GeographyChartPage() {
     </div>
   );
 }
-
-
-// Date pentru distribuția regională globală
-const regionsData = [
-  { name: "Europa", value: 35, color: "#3B82F6" },
-  { name: "America de Nord", value: 25, color: "#10B981" },
-  { name: "Asia", value: 20, color: "#F59E0B" },
-  { name: "America de Sud", value: 10, color: "#EF4444" },
-  { name: "Africa", value: 7, color: "#8B5CF6" },
-  { name: "Australia", value: 3, color: "#EC4899" }
-];
-
-// Date pentru țările cu cele mai multe vânzări
-const countriesData = [
-  { country: "SUA", sales: 1245, growth: "+12%" },
-  { country: "Germania", sales: 984, growth: "+8%" },
-  { country: "Japonia", sales: 745, growth: "+15%" },
-  { country: "UK", sales: 682, growth: "+5%" },
-  { country: "Franța", sales: 580, growth: "+7%" }
-];

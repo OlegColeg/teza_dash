@@ -13,19 +13,27 @@ export default async function handler(req, res) {
     return res.json(reservations);
   }
   if (req.method === 'POST') {
-    const { teamId, date, startTime, endTime, cost, status, notes } = req.body;
+    const { teamId: teamIdParam, teamName, date, startTime, endTime, cost, status, notes } = req.body;
+    // Resolve teamId — find or create if teamName given
+    let teamId = teamIdParam;
+    if (!teamId && teamName?.trim()) {
+      let team = await prisma.team.findFirst({ where: { name: { equals: teamName.trim(), mode: 'insensitive' } } }).catch(() => null);
+      if (!team) {
+        team = await prisma.team.create({ data: { name: teamName.trim(), balance: 0 } });
+      }
+      teamId = team.id;
+    }
     if (!teamId || !date || !startTime || !endTime) return res.status(400).json({ error: 'Date lipsă' });
-    // Verificare conflict
+    // Conflict check — overlap: A.start < B.end AND A.end > B.start
     const conflict = await prisma.reservation.findFirst({
-      where: { date, OR: [{ AND: [{ startTime: { lte: startTime } }, { endTime: { gt: startTime } }] }, { AND: [{ startTime: { lt: endTime } }, { endTime: { gte: endTime } }] }, { AND: [{ startTime: { gte: startTime } }, { endTime: { lte: endTime } }] }] }
+      where: { date, startTime: { lt: endTime }, endTime: { gt: startTime } }
     });
-    if (conflict) return res.status(400).json({ error: 'Interval ocupat deja' });
+    if (conflict) return res.status(409).json({ error: `Interval ocupat: ${conflict.startTime}–${conflict.endTime}` });
     const reservation = await prisma.reservation.create({ data: { teamId, date, startTime, endTime, cost: Number(cost) || 0, status: status || 'paid', notes: notes || null } });
-    // Dacă amânat, adaugă la datoria echipei
+    // Finance + balance logic
     if (status === 'deferred') {
       await prisma.team.update({ where: { id: teamId }, data: { balance: { decrement: Number(cost) } } });
     } else {
-      // Achitat pe loc — adaugă în finanțe
       const team = await prisma.team.findUnique({ where: { id: teamId } });
       await prisma.finance.create({ data: { type: 'income', category: 'chirie_teren', client: team.name, description: `Rezervare ${date} ${startTime}-${endTime}`, amount: Number(cost), date } });
     }

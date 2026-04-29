@@ -25,7 +25,6 @@ model Team {
   id           String        @id @default(uuid())
   name         String        @unique
   phone        String?
-  hourlyRate   Float         @default(100)
   balance      Float         @default(0)  // negativ = datorie
   createdAt    DateTime      @default(now())
   reservations Reservation[]

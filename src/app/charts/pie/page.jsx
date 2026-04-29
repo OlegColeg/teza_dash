@@ -15,11 +15,11 @@ export default function PieChartPage() {
     const token = localStorage.getItem('token');
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     Promise.all([
-      fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : []),
+      fetch('/api/finances', { headers }).then(r => r.ok ? r.json() : {}),
       fetch('/api/teams', { headers }).then(r => r.ok ? r.json() : []),
       fetch('/api/reservations', { headers }).then(r => r.ok ? r.json() : []),
     ]).then(([fins, teamsRaw, resRaw]) => {
-      const finArr = fins.data || fins || [];
+      const finArr = fins.transactions || fins.data || (Array.isArray(fins) ? fins : []);
       const teamsArr = teamsRaw.data || teamsRaw || [];
       const resArr = resRaw.data || resRaw || [];
 
@@ -141,31 +141,3 @@ export default function PieChartPage() {
     </div>
   );
 }
-
-
-// Date pentru graficul pie
-const pieData = [
-  { name: "Desktop", value: 45, color: "#3B82F6" },
-  { name: "Mobile", value: 30, color: "#10B981" },
-  { name: "Tablet", value: 15, color: "#F59E0B" },
-  { name: "Smart TV", value: 6, color: "#EF4444" },
-  { name: "Altele", value: 4, color: "#8B5CF6" }
-];
-
-// Date pentru vânzări pe categorii
-const categoryData = [
-  { name: "Tehnologie", value: 40, amount: 125450 },
-  { name: "Modă", value: 25, amount: 78230 },
-  { name: "Casa & Grădină", value: 15, amount: 46890 },
-  { name: "Sport", value: 12, amount: 36720 },
-  { name: "Cărți", value: 8, amount: 24100 }
-];
-
-// Date pentru regiuni
-const regionData = [
-  { name: "Nord", value: 35, color: "#3B82F6" },
-  { name: "Centru", value: 30, color: "#10B981" },
-  { name: "Sud", value: 20, color: "#F59E0B" },
-  { name: "Est", value: 10, color: "#EF4444" },
-  { name: "Vest", value: 5, color: "#8B5CF6" }
-];

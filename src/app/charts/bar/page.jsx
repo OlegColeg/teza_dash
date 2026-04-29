@@ -15,9 +15,9 @@ export default function BarChartPage() {
     const token = localStorage.getItem('token');
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     fetch('/api/finances', { headers })
-      .then(r => r.ok ? r.json() : [])
+      .then(r => r.ok ? r.json() : {})
       .then(raw => {
-        const arr = raw.data || raw || [];
+        const arr = raw.transactions || raw.data || (Array.isArray(raw) ? raw : []);
         const year = new Date().getFullYear();
         const monthly = MONTHS.map((m, idx) => {
           const monthStr = String(idx + 1).padStart(2, '0');
@@ -114,20 +114,3 @@ export default function BarChartPage() {
     </div>
   );
 }
-
-
-// Date pentru grafic
-const data = [
-  { month: "Jan", sales: 4000, revenue: 2400, profit: 1600 },
-  { month: "Feb", sales: 3000, revenue: 1398, profit: 1602 },
-  { month: "Mar", sales: 2000, revenue: 8000, profit: 6000 },
-  { month: "Apr", sales: 2780, revenue: 3908, profit: 1128 },
-  { month: "May", sales: 1890, revenue: 4800, profit: 2910 },
-  { month: "Jun", sales: 2390, revenue: 3800, profit: 1410 },
-  { month: "Iul", sales: 3490, revenue: 4300, profit: 810 },
-  { month: "Aug", sales: 3790, revenue: 4500, profit: 710 },
-  { month: "Sep", sales: 3290, revenue: 3300, profit: 10 },
-  { month: "Oct", sales: 4190, revenue: 2400, profit: 790 },
-  { month: "Nov", sales: 3590, revenue: 4100, profit: 510 },
-  { month: "Dec", sales: 4090, revenue: 2100, profit: 990 }
-];

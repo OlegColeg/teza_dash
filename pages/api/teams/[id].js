@@ -10,8 +10,8 @@ export default async function handler(req, res) {
     return res.json(team);
   }
   if (req.method === 'PUT') {
-    const { name, phone, hourlyRate } = req.body;
-    const team = await prisma.team.update({ where: { id }, data: { name, phone: phone || null, hourlyRate: Number(hourlyRate) || 100 } });
+    const { name, phone } = req.body;
+    const team = await prisma.team.update({ where: { id }, data: { name, phone: phone || null } });
     return res.json(team);
   }
   if (req.method === 'DELETE') {

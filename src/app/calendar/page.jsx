@@ -13,7 +13,7 @@ export default function CalendarPage() {
   const [reservations, setReservations] = useState([]);
   const [teams, setTeams] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ teamId: "", startTime: "18:00", endTime: "19:00", paymentStatus: "paid" });
+  const [form, setForm] = useState({ teamInput: "", startTime: "18:00", endTime: "19:00", status: "paid", cost: "", notes: "" });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -58,20 +58,34 @@ export default function CalendarPage() {
   const reservedDates = new Set(reservations.map(r => r.date));
 
   async function handleAdd() {
-    if (!form.teamId) { setError("Selectează echipa"); return; }
-    if (!form.startTime || !form.endTime) { setError("Selectează orele"); return; }
-    setSaving(true); setError("");
+    if (!form.teamInput.trim()) { setError('Introdu numele echipei'); return; }
+    if (!form.startTime || !form.endTime) { setError('Selectează orele'); return; }
+    if (form.startTime >= form.endTime) { setError('Ora de sfârşit trebuie să fie după ora de început'); return; }
+    setSaving(true); setError('');
     try {
+      const teamByName = teams.find(t => t.name.toLowerCase() === form.teamInput.toLowerCase().trim());
+      const payload = {
+        ...(teamByName ? { teamId: teamByName.id } : { teamName: form.teamInput.trim() }),
+        date: selectedDate,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        cost: Number(form.cost) || 0,
+        status: form.status,
+        notes: form.notes || null
+      };
       const res = await fetch('/api/reservations', {
         method: 'POST', headers: getHeaders(),
-        body: JSON.stringify({ ...form, date: selectedDate })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Eroare'); setSaving(false); return; }
+      if (!res.ok) { setError(data.error || 'Eroare'); setSaving(false); loadReservations(); return; }
       setShowModal(false);
       loadReservations();
       loadTeams();
-    } catch { setError('Eroare de rețea'); }
+    } catch {
+      setError('Eroare de rețea — verifici dacă rezervarea a apărut');
+      loadReservations(); // reload to detect if it actually saved
+    }
     setSaving(false);
   }
 
@@ -131,7 +145,7 @@ export default function CalendarPage() {
               </h2>
               <p className="text-gray-400 text-sm">{selectedReservations.length} rezervări</p>
             </div>
-            <button onClick={() => { setForm({ teamId: "", startTime: "18:00", endTime: "19:00", paymentStatus: "paid" }); setError(""); setShowModal(true); }}
+            <button onClick={() => { setForm({ teamInput: '', startTime: '18:00', endTime: '19:00', status: 'paid', cost: '', notes: '' }); setError(''); setShowModal(true); }}
               className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded flex items-center gap-2">
               <Plus size={16} /> Adaugă Rezervare
             </button>
@@ -147,10 +161,10 @@ export default function CalendarPage() {
                   {res ? (
                     <div className="flex-1 bg-teal-900 border border-teal-600 rounded px-3 py-2 flex justify-between items-center">
                       <div>
-                        <span className="text-teal-300 font-medium">{res.teamName}</span>
-                        <span className="text-gray-400 text-xs ml-2">{res.startTime}–{res.endTime} · {res.totalCost} lei</span>
-                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${res.paymentStatus === 'paid' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`}>
-                          {res.paymentStatus === 'paid' ? 'achitat' : 'amânat'}
+                        <span className="text-teal-300 font-medium">{res.team?.name || '?'}</span>
+                        <span className="text-gray-400 text-xs ml-2">{res.startTime}–{res.endTime} · {res.cost} lei</span>
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${res.status === 'paid' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`}>
+                          {res.status === 'paid' ? 'achitat' : 'amânat'}
                         </span>
                       </div>
                       {res.startTime === hour && (
@@ -182,11 +196,20 @@ export default function CalendarPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-gray-300 text-sm block mb-1">Echipa *</label>
-                <select value={form.teamId} onChange={e => setForm(f => ({ ...f, teamId: e.target.value }))}
-                  className="w-full bg-gray-700 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-teal-400">
-                  <option value="">— Selectează echipa —</option>
-                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+                <input
+                  type="text"
+                  list="teams-datalist"
+                  value={form.teamInput}
+                  onChange={e => setForm(f => ({ ...f, teamInput: e.target.value }))}
+                  placeholder="Scrie sau alege echipa..."
+                  className="w-full bg-gray-700 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                />
+                <datalist id="teams-datalist">
+                  {teams.map(t => <option key={t.id} value={t.name} />)}
+                </datalist>
+                {form.teamInput.trim() && !teams.find(t => t.name.toLowerCase() === form.teamInput.toLowerCase().trim()) && (
+                  <p className="text-yellow-400 text-xs mt-1">✨ Echipă nouă — va fi creată automat</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -206,26 +229,26 @@ export default function CalendarPage() {
               </div>
               <div>
                 <label className="text-gray-300 text-sm block mb-1">Plată</label>
-                <select value={form.paymentStatus} onChange={e => setForm(f => ({ ...f, paymentStatus: e.target.value }))}
+                <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
                   className="w-full bg-gray-700 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-teal-400">
                   <option value="paid">Achitat pe loc</option>
                   <option value="deferred">Amânat la plată (datorie)</option>
                 </select>
               </div>
-              {form.teamId && form.startTime && form.endTime && (
-                <div className="bg-gray-700 p-3 rounded text-sm text-gray-300">
-                  Cost estimat: <span className="text-white font-bold">
-                    {(() => {
-                      const team = teams.find(t => t.id === form.teamId);
-                      if (!team) return '–';
-                      const [sh, sm] = form.startTime.split(':').map(Number);
-                      const [eh, em] = form.endTime.split(':').map(Number);
-                      const hours = ((eh * 60 + em) - (sh * 60 + sm)) / 60;
-                      return hours > 0 ? `${hours * team.hourlyRate} lei (${hours}h × ${team.hourlyRate} lei)` : 'Ore invalide';
-                    })()}
-                  </span>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-300 text-sm block mb-1">Cost (lei)</label>
+                  <input type="number" value={form.cost} onChange={e => setForm(f => ({ ...f, cost: e.target.value }))}
+                    className="w-full bg-gray-700 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                    min="0" step="50" placeholder="ex: 500" />
                 </div>
-              )}
+                <div>
+                  <label className="text-gray-300 text-sm block mb-1">Observații</label>
+                  <input type="text" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                    className="w-full bg-gray-700 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                    placeholder="opțional" />
+                </div>
+              </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={handleAdd} disabled={saving}
