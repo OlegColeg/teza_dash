@@ -103,11 +103,11 @@ export default function RootLayout({ children }) {
   };
 
   return (
-    <html lang="ro">
+    <html lang="ro" suppressHydrationWarning>
       <head>
         <title>Dashboard Oală Oleg</title>
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {isPublicPath ? (
           // Pagini publice (login/register) — fără sidebar/navbar
           <>{children}</>
