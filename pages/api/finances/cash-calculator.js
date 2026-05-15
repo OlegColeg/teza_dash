@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   if (!requireAuth(req, res)) return;
   if (req.method === 'GET') {
     const calc = await prisma.cashCalculator.findUnique({ where: { id: 'singleton' } });
-    return res.json(calc || { bills: { 200:0,100:0,50:0,20:0,10:0,5:0,1:0 }, coins: { 10:0,5:0,2:0,1:0 } });
+    return res.json(calc || { bills: { 1000:0,500:0,200:0,100:0,50:0,20:0,10:0,5:0,1:0 }, coins: { 10:0,5:0,2:0,1:0 } });
   }
   if (req.method === 'PUT') {
     const { bills, coins } = req.body;

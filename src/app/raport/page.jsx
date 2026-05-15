@@ -51,7 +51,7 @@ export default function RaportPage() {
   }
 
   useEffect(() => {
-    const BILLS_LIST = [200, 100, 50, 20, 10, 5, 1];
+    const BILLS_LIST = [1000, 500, 200, 100, 50, 20, 10, 5, 1];
     const COINS_LIST = [10, 5, 2, 1];
     Promise.all([
       fetch("/api/finances", { headers: getHeaders() }).then(r => r.json()),

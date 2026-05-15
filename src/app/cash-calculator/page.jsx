@@ -4,11 +4,11 @@ import React, { useState, useEffect } from "react";
 import { Save, RefreshCw } from "lucide-react";
 
 // Bancnote MDL
-const BILLS = [200, 100, 50, 20, 10, 5, 1];
+const BILLS = [1000, 500, 200, 100, 50, 20, 10, 5, 1];
 const COINS = [10, 5, 2, 1];
 
 export default function CashCalculatorPage() {
-  const [bills, setBills] = useState({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [bills, setBills] = useState({ 1000: 0, 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
   const [coins, setCoins] = useState({ 10: 0, 5: 0, 2: 0, 1: 0 });
   const [systemBalance, setSystemBalance] = useState(null);
   const [totalDebt, setTotalDebt] = useState(0);
@@ -60,7 +60,7 @@ export default function CashCalculatorPage() {
   }
 
   function handleReset() {
-    setBills({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+    setBills({ 1000: 0, 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
     setCoins({ 10: 0, 5: 0, 2: 0, 1: 0 });
   }
 
@@ -86,7 +86,9 @@ export default function CashCalculatorPage() {
                 return (
                   <div key={b} className="flex items-center gap-3">
                     <div className={`w-20 text-center py-1.5 rounded font-bold text-sm
-                      ${b === 200 ? 'bg-blue-800 text-blue-200' :
+                      ${b === 1000 ? 'bg-red-900 text-red-200' :
+                        b === 500 ? 'bg-orange-800 text-orange-200' :
+                        b === 200 ? 'bg-blue-800 text-blue-200' :
                         b === 100 ? 'bg-green-800 text-green-200' :
                         b === 50 ? 'bg-purple-800 text-purple-200' :
                         b === 20 ? 'bg-yellow-800 text-yellow-200' :

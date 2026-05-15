@@ -98,7 +98,7 @@ model Loan {
 // ─────────────────────────────────────────────
 model CashCalculator {
   id        String   @id @default("singleton")
-  bills     Json     @default("{\"200\":0,\"100\":0,\"50\":0,\"20\":0,\"10\":0,\"5\":0,\"1\":0}")
+  bills     Json     @default("{\"1000\":0,\"500\":0,\"200\":0,\"100\":0,\"50\":0,\"20\":0,\"10\":0,\"5\":0,\"1\":0}")
   coins     Json     @default("{\"10\":0,\"5\":0,\"2\":0,\"1\":0}")
   updatedAt DateTime @updatedAt
 }
